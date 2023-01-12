@@ -399,4 +399,8 @@ dist
 
 # End of https://www.toptal.com/developers/gitignore/api/lua,node,visualstudiocode,jetbrains,intellij
 
+# Draw.io
+*.bkp
+*.dtmp
+
 LNX-Library.lua

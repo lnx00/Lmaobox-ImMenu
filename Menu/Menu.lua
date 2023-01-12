@@ -304,6 +304,17 @@ function Menu.Slider(text, value, min, max)
     return value
 end
 
+---@param id Texture
+function Menu.Texture(id)
+    local x, y = Menu.Cursor.X + Style.Spacing, Menu.Cursor.Y
+    local width, height = draw.GetTextureSize(id)
+
+    draw.Color(255, 255, 255, 255)
+    draw.TexturedRect(id, x, y, x + width, y + height)
+
+    Menu.UpdateCursor(width, height)
+end
+
 ---@param size number
 function Menu.Space(size)
     size = size or Style.Spacing
