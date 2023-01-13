@@ -1,7 +1,7 @@
 import { bundle } from 'luabundle'
 import * as fs from 'fs';
 
-const bundledLua = bundle('./Menu/Menu.lua', {
+const bundledLua = bundle('./Menu/ImMenu.lua', {
     metadata: false,
     expressionHandler: (module, expression) => {
 		const start = expression.loc.start
