@@ -135,6 +135,49 @@ function ImMenu.UpdateCursor(w, h)
     end
 end
 
+-- Updates the next color depending on the interaction state
+---@param hovered boolean
+---@param active boolean
+function ImMenu.InteractionColor(hovered, active)
+    if active then
+        ImMenu.SetNextColor(Colors.ItemActive)
+    elseif hovered then
+        ImMenu.SetNextColor(Colors.ItemHover)
+    else
+        ImMenu.SetNextColor(Colors.Item)
+    end
+end
+
+-- Returns whether the element is clicked or active
+---@param x number
+---@param y number
+---@param width number
+---@param height number
+---@param id string
+---@return boolean, boolean, boolean
+function ImMenu.GetInteraction(x, y, width, height, id)
+    local hovered = id == ImMenu.ActiveItem or Input.MouseInBounds(x, y, width, height)
+    local clicked = hovered and (MouseHelper:Pressed() or EnterHelper:Pressed())
+    local active = hovered and (MouseHelper:Down() or EnterHelper:Down())
+
+    -- Is a different element active?
+    if ImMenu.ActiveItem ~= nil and ImMenu.ActiveItem ~= id then
+        return hovered, false, false
+    end
+
+    -- Should this element be active?
+    if active and ImMenu.ActiveItem == nil then
+        ImMenu.ActiveItem = id
+    end
+
+    -- Is this element no longer active?
+    if ImMenu.ActiveItem == id and not active then
+        ImMenu.ActiveItem = nil
+    end
+
+    return hovered, clicked, active
+end
+
 function ImMenu.DrawText(x, y, text)
     for label in text:gmatch("(.+)###(.+)") do
         draw.Text(x, y, label)
@@ -157,15 +200,15 @@ end
 function ImMenu.EndFrame()
     local frame = FrameStack:pop()
 
+    ImMenu.Cursor.X = frame.X
+    ImMenu.Cursor.Y = frame.Y
+
     -- Apply padding
     frame.W = frame.W + Style.FramePadding * 2
     frame.H = frame.H + Style.FramePadding * 2
 
-    -- Update parent frame cursor
-    local parentFrame = ImMenu.GetCurrentFrame()
-    if parentFrame then
-        ImMenu.UpdateCursor(frame.W, frame.H)
-    end
+    -- Update the cursor
+    ImMenu.UpdateCursor(frame.W, frame.H)
 
     -- TODO: Remove this
     draw.Color(255, 0, 0, 50)
@@ -176,17 +219,17 @@ end
 
 ---@param title string
 function ImMenu.Begin(title)
-    local window = Windows[title]
-    if not window then
-        window = {
+    if not Windows[title] then
+        Windows[title] = {
             X = 50,
-            Y = 50,
+            Y = 150,
             W = 100,
             H = 100
         }
     end
 
     draw.SetFont(Fonts.Verdana)
+    local window = Windows[title]
     local txtWidth, txtHeight = draw.GetTextSize(title)
     local titleHeight = txtHeight + Style.Spacing
 
@@ -220,6 +263,8 @@ function ImMenu.End()
     window.H = math.max(window.H, frame.H)
 end
 
+-- Draw a label
+---@param text string
 function ImMenu.Text(text)
     local x, y = ImMenu.Cursor.X, ImMenu.Cursor.Y
     local width, height = draw.GetTextSize(text)
@@ -228,6 +273,25 @@ function ImMenu.Text(text)
     ImMenu.DrawText(x, y, text)
 
     ImMenu.UpdateCursor(width, height)
+end
+
+-- Draws a button
+function ImMenu.Button(text)
+    local x, y = ImMenu.Cursor.X, ImMenu.Cursor.Y
+    local txtWidth, txtHeight = draw.GetTextSize(text)
+    local width, height = txtWidth + Style.Spacing * 2, txtHeight + Style.Spacing * 2
+    local hovered, clicked, active = ImMenu.GetInteraction(x, y, width, height, text)
+
+    -- Background
+    ImMenu.InteractionColor(hovered, active)
+    draw.FilledRect(x, y, x + width, y + height)
+
+    -- Text
+    draw.Color(table.unpack(Colors.Text))
+    ImMenu.DrawText(math.floor(x + (width / 2) - (txtWidth / 2)), math.floor(y + (height / 2) - (txtHeight / 2)), text)
+
+    ImMenu.UpdateCursor(width, height)
+    return hovered and clicked, active
 end
 
 return ImMenu
