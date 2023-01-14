@@ -54,7 +54,7 @@ local Style = {
     Font = Fonts.Verdana,
     Spacing = 5,
     FramePadding = 7,
-    ItemSize = nil,
+    ItemSize = nil
 }
 
 -- Stacks
@@ -166,8 +166,8 @@ end
 function ImMenu.GetSize(width, height)
     if Style.ItemSize ~= nil then
         local frame = ImMenu.GetCurrentFrame()
-        width = Style.ItemSize.W == -1 and frame.W or Style.ItemSize[1]
-        height = Style.ItemSize.H == -1 and frame.H or Style.ItemSize[2]
+        width = Style.ItemSize[1] == -1 and frame.W or Style.ItemSize[1]
+        height = Style.ItemSize[2] == -1 and frame.H or Style.ItemSize[2]
     end
 
     return width, height
@@ -407,8 +407,7 @@ function ImMenu.Slider(text, value, min, max, step)
     local x, y = ImMenu.Cursor.X, ImMenu.Cursor.Y
     local valText = string.format("%s: %s", text, value)
     local txtWidth, txtHeight = draw.GetTextSize(valText)
-    local frame = ImMenu.GetCurrentFrame()
-    local width, height = frame.W, txtHeight + Style.Spacing * 2
+    local width, height = ImMenu.GetSize(250, txtHeight + Style.Spacing * 2)
     local sliderWidth = math.floor(width * (value - min) / (max - min))
     local hovered, clicked, active = ImMenu.GetInteraction(x, y, width, height, text)
 
@@ -441,6 +440,20 @@ function ImMenu.Slider(text, value, min, max, step)
 
     ImMenu.UpdateCursor(width, height)
     return value, clicked
+end
+
+function ImMenu.List(text, items)
+    ImMenu.BeginFrame()
+
+    ImMenu.Text(text)
+    ImMenu.PushStyle("ItemSize", { 250, 30 })
+    
+    for _, item in ipairs(items) do
+        ImMenu.Button(item)
+    end
+
+    ImMenu.PopStyle()
+    ImMenu.EndFrame()
 end
 
 ---@param size number
