@@ -28,6 +28,8 @@ local ScreenWidth, ScreenHeight = draw.GetScreenSize()
 -- Input Helpers
 local MouseHelper = KeyHelper.new(MOUSE_LEFT)
 local EnterHelper = KeyHelper.new(KEY_ENTER)
+local LeftArrow = KeyHelper.new(KEY_LEFT)
+local RightArrow = KeyHelper.new(KEY_RIGHT)
 
 ---@type table<string, ImWindow>
 local Windows = {}
@@ -358,7 +360,7 @@ end
 
 ---@param id Texture
 function ImMenu.Texture(id)
-    local x, y = ImMenu.Cursor.X + Style.Spacing, ImMenu.Cursor.Y
+    local x, y = ImMenu.Cursor.X, ImMenu.Cursor.Y
     local width, height = draw.GetTextureSize(id)
 
     draw.Color(255, 255, 255, 255)
@@ -377,7 +379,7 @@ end
 function ImMenu.Slider(text, value, min, max, step)
     step = step or 1
     local x, y = ImMenu.Cursor.X, ImMenu.Cursor.Y
-    local valText = text .. ": " .. tostring(value)
+    local valText = string.format("%s: %s", text, value)
     local txtWidth, txtHeight = draw.GetTextSize(valText)
     local frame = ImMenu.GetCurrentFrame()
     local width, height = frame.W, txtHeight + Style.Spacing * 2
@@ -398,9 +400,17 @@ function ImMenu.Slider(text, value, min, max, step)
 
     -- Update Value
     if active then
+        -- Mouse drag
         local mX, mY = table.unpack(input.GetMousePos())
         local percent = math.clamp((mX - x) / width, 0, 1)
         value = math.round((min + (max - min) * percent) / step) * step
+    elseif hovered then
+        -- Arrow keys
+        if LeftArrow:Pressed() then
+            value = math.max(value - step, min)
+        elseif RightArrow:Pressed() then
+            value = math.min(value + step, max)
+        end
     end
 
     ImMenu.UpdateCursor(width, height)
