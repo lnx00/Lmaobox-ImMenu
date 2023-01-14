@@ -23,6 +23,8 @@ local ImMenu = {
 
 --[[ Variables ]]
 
+local ScreenWidth, ScreenHeight = draw.GetScreenSize()
+
 -- Input Helpers
 local MouseHelper = KeyHelper.new(MOUSE_LEFT)
 local EnterHelper = KeyHelper.new(KEY_ENTER)
@@ -218,8 +220,10 @@ function ImMenu.EndFrame()
     return frame
 end
 
+-- Begins a new window
 ---@param title string
-function ImMenu.Begin(title)
+---@param visible? boolean
+function ImMenu.Begin(title, visible)
     if not Windows[title] then
         Windows[title] = {
             X = 50,
@@ -233,6 +237,7 @@ function ImMenu.Begin(title)
     local window = Windows[title]
     local txtWidth, txtHeight = draw.GetTextSize(title)
     local titleHeight = txtHeight + Style.Spacing
+    local _, _, active = ImMenu.GetInteraction(window.X, window.Y, window.W, titleHeight, title)
 
     -- Title bar
     draw.Color(table.unpack(Colors.Title))
@@ -247,21 +252,36 @@ function ImMenu.Begin(title)
     draw.Color(table.unpack(Colors.Window))
     draw.FilledRect(window.X, window.Y + titleHeight, window.X + window.W, window.Y + window.H + titleHeight)
 
+    -- Mouse drag
+    if active then
+        local mX, mY = table.unpack(input.GetMousePos())
+
+        window.X = math.clamp(mX - (window.W // 2), 0, ScreenWidth - window.W)
+        window.Y = math.clamp(mY - (titleHeight // 2), 0, ScreenHeight - window.H - titleHeight)
+    end
+
+    -- Update the cursor
     ImMenu.Cursor.X = window.X
     ImMenu.Cursor.Y = window.Y + titleHeight
 
     ImMenu.BeginFrame()
 
+    -- Store and pish the window
     Windows[title] = window
     WindowStack:push(window)
+
+    return visible
 end
 
+-- Ends the current window
 function ImMenu.End()
     ---@type ImFrame
     local frame = ImMenu.EndFrame()
     local window = WindowStack:pop()
-    window.W = math.max(window.W, frame.W)
-    window.H = math.max(window.H, frame.H)
+
+    -- Update the window size
+    window.W = frame.W
+    window.H = frame.H
 end
 
 -- Draw a label
