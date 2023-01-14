@@ -8,7 +8,8 @@ assert(Lib.GetVersion() >= 0.94, "LNXlib version is too old, please update it!")
 local Fonts, KeyHelper, Input = Lib.UI.Fonts, Lib.Utils.KeyHelper, Lib.Utils.Input
 
 ---@alias ImItemID string
----@alias ImWindow { X : integer, Y : integer, W : integer, H : integer }
+---@alias ImPos { X : integer, Y : integer }
+---@alias ImRect { X : integer, Y : integer, W : integer, H : integer }
 ---@alias ImFrame { X : integer, Y : integer, W : integer, H : integer, A : integer }
 ---@alias ImColor table<integer, integer, integer, integer?>
 ---@alias ImStyle any
@@ -24,6 +25,8 @@ local ImMenu = {
 --[[ Variables ]]
 
 local ScreenWidth, ScreenHeight = draw.GetScreenSize()
+---@type ImPos
+local DragPos = { X = 0, Y = 0 }
 
 -- Input Helpers
 local MouseHelper = KeyHelper.new(MOUSE_LEFT)
@@ -31,10 +34,10 @@ local EnterHelper = KeyHelper.new(KEY_ENTER)
 local LeftArrow = KeyHelper.new(KEY_LEFT)
 local RightArrow = KeyHelper.new(KEY_RIGHT)
 
----@type table<string, ImWindow>
+---@type table<string, ImRect>
 local Windows = {}
 
----@type table<ImColor>
+---@type ImColor[]
 local Colors = {
     Title = { 55, 100, 215, 255 },
     Text = { 255, 255, 255, 255 },
@@ -46,13 +49,11 @@ local Colors = {
     HighlightActive = { 240, 240, 240, 140 },
 }
 
----@type table<ImStyle>
+---@type ImStyle[]
 local Style = {
     Font = Fonts.Verdana,
     Spacing = 5,
-    FramePadding = 7,
-    ItemSize = 20,
-    SameLine = false
+    FramePadding = 7
 }
 
 -- Stacks
@@ -74,7 +75,7 @@ end
 function ImMenu.GetStyle() return table.readOnly(Style) end
 function ImMenu.GetColors() return table.readOnly(Colors) end
 
----@return ImWindow
+---@return ImRect
 function ImMenu.GetCurrentWindow() return WindowStack:peek() end
 
 ---@return ImFrame
@@ -187,6 +188,9 @@ function ImMenu.GetInteraction(x, y, width, height, id)
     return hovered, clicked, active
 end
 
+---@param x integer
+---@param y integer
+---@param text string
 function ImMenu.DrawText(x, y, text)
     for label in text:gmatch("(.+)###(.+)") do
         draw.Text(x, y, label)
@@ -207,14 +211,18 @@ function ImMenu.BeginFrame(align)
 end
 
 function ImMenu.EndFrame()
+    ---@type ImFrame
     local frame = FrameStack:pop()
 
     ImMenu.Cursor.X = frame.X
     ImMenu.Cursor.Y = frame.Y
 
     -- Apply padding
-    frame.W = frame.W + Style.FramePadding * 2
-    frame.H = frame.H + Style.FramePadding * 2
+    if frame.A == 0 then
+        frame.W = frame.W + Style.FramePadding * 2
+    elseif frame.A == 1 then
+        frame.H = frame.H + Style.FramePadding * 2
+    end
 
     -- Update the cursor
     ImMenu.UpdateCursor(frame.W, frame.H)
@@ -244,7 +252,7 @@ function ImMenu.Begin(title, visible)
     local window = Windows[title]
     local txtWidth, txtHeight = draw.GetTextSize(title)
     local titleHeight = txtHeight + Style.Spacing
-    local _, _, active = ImMenu.GetInteraction(window.X, window.Y, window.W, titleHeight, title)
+    local hovered, clicked, active = ImMenu.GetInteraction(window.X, window.Y, window.W, titleHeight, title)
 
     -- Title bar
     draw.Color(table.unpack(Colors.Title))
@@ -260,11 +268,14 @@ function ImMenu.Begin(title, visible)
     draw.FilledRect(window.X, window.Y + titleHeight, window.X + window.W, window.Y + window.H + titleHeight)
 
     -- Mouse drag
-    if active then
+    if active and ImMenu.ActiveItem == nil then
         local mX, mY = table.unpack(input.GetMousePos())
+        if clicked then
+            DragPos = { X = mX - window.X, Y = mY - window.Y }
+        end
 
-        window.X = math.clamp(mX - (window.W // 2), 0, ScreenWidth - window.W)
-        window.Y = math.clamp(mY - (titleHeight // 2), 0, ScreenHeight - window.H - titleHeight)
+        window.X = math.clamp(mX - DragPos.X, 0, ScreenWidth - window.W)
+        window.Y = math.clamp(mY - DragPos.Y, 0, ScreenHeight - window.H - titleHeight)
     end
 
     -- Update the cursor
