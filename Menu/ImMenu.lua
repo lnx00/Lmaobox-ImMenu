@@ -44,6 +44,7 @@ local Colors = {
 
 ---@type table<ImStyle>
 local Style = {
+    Font = Fonts.Verdana,
     Spacing = 5,
     FramePadding = 7,
     ItemSize = 20,
@@ -156,7 +157,7 @@ end
 ---@param id string
 ---@return boolean, boolean, boolean
 function ImMenu.GetInteraction(x, y, width, height, id)
-    local hovered = id == ImMenu.ActiveItem or Input.MouseInBounds(x, y, width, height)
+    local hovered = Input.MouseInBounds(x, y, x + width, y + height) or id == ImMenu.ActiveItem
     local clicked = hovered and (MouseHelper:Pressed() or EnterHelper:Pressed())
     local active = hovered and (MouseHelper:Down() or EnterHelper:Down())
 
@@ -228,7 +229,7 @@ function ImMenu.Begin(title)
         }
     end
 
-    draw.SetFont(Fonts.Verdana)
+    draw.SetFont(Style.Font)
     local window = Windows[title]
     local txtWidth, txtHeight = draw.GetTextSize(title)
     local titleHeight = txtHeight + Style.Spacing
@@ -275,7 +276,43 @@ function ImMenu.Text(text)
     ImMenu.UpdateCursor(width, height)
 end
 
+-- Draws a checkbox that toggles a value
+---@param text string
+---@param state boolean
+---@return boolean, boolean
+function ImMenu.Checkbox(text, state)
+    local x, y = ImMenu.Cursor.X + Style.Spacing, ImMenu.Cursor.Y
+    local txtWidth, txtHeight = draw.GetTextSize(text)
+    local boxSize = txtHeight + Style.Spacing * 2
+    local width, height = boxSize + Style.Spacing + txtWidth, boxSize
+    local hovered, clicked, active = ImMenu.GetInteraction(x, y, width, height, text)
+
+    -- Box
+    ImMenu.InteractionColor(hovered, active)
+    draw.FilledRect(x, y, x + boxSize, y + boxSize)
+
+    -- Check
+    if state then
+        ImMenu.SetNextColor(Colors.Highlight)
+        draw.FilledRect(x + Style.Spacing, y + Style.Spacing, x + (boxSize - Style.Spacing), y + (boxSize - Style.Spacing))
+    end
+
+    -- Text
+    ImMenu.SetNextColor(Colors.Text)
+    ImMenu.DrawText(x + boxSize + Style.Spacing, y + (height // 2) - (txtHeight // 2), text)
+
+    -- Update State
+    if clicked then
+        state = not state
+    end
+
+    ImMenu.UpdateCursor(width, height)
+    return state, clicked
+end
+
 -- Draws a button
+---@param text string
+---@return boolean, boolean
 function ImMenu.Button(text)
     local x, y = ImMenu.Cursor.X, ImMenu.Cursor.Y
     local txtWidth, txtHeight = draw.GetTextSize(text)
@@ -288,10 +325,10 @@ function ImMenu.Button(text)
 
     -- Text
     draw.Color(table.unpack(Colors.Text))
-    ImMenu.DrawText(math.floor(x + (width / 2) - (txtWidth / 2)), math.floor(y + (height / 2) - (txtHeight / 2)), text)
+    ImMenu.DrawText(x + (width // 2) - (txtWidth // 2), y + (height // 2) - (txtHeight // 2), text)
 
     ImMenu.UpdateCursor(width, height)
-    return hovered and clicked, active
+    return clicked, active
 end
 
 return ImMenu
