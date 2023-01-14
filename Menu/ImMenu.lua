@@ -53,7 +53,8 @@ local Colors = {
 local Style = {
     Font = Fonts.Verdana,
     Spacing = 5,
-    FramePadding = 7
+    FramePadding = 7,
+    ItemSize = nil,
 }
 
 -- Stacks
@@ -72,6 +73,7 @@ end
 
 --[[ Public Getters ]]
 
+function ImMenu.GetVersion() return 0.50 end
 function ImMenu.GetStyle() return table.readOnly(Style) end
 function ImMenu.GetColors() return table.readOnly(Colors) end
 
@@ -156,6 +158,19 @@ function ImMenu.InteractionColor(hovered, active)
     else
         ImMenu.SetNextColor(Colors.Item)
     end
+end
+
+---@param width integer
+---@param height integer
+---@return integer, integer
+function ImMenu.GetSize(width, height)
+    if Style.ItemSize ~= nil then
+        local frame = ImMenu.GetCurrentFrame()
+        width = Style.ItemSize.W == -1 and frame.W or Style.ItemSize[1]
+        height = Style.ItemSize.H == -1 and frame.H or Style.ItemSize[2]
+    end
+
+    return width, height
 end
 
 -- Returns whether the element is clicked or active
@@ -268,7 +283,7 @@ function ImMenu.Begin(title, visible)
     draw.FilledRect(window.X, window.Y + titleHeight, window.X + window.W, window.Y + window.H + titleHeight)
 
     -- Mouse drag
-    if active and ImMenu.ActiveItem == nil then
+    if active then
         local mX, mY = table.unpack(input.GetMousePos())
         if clicked then
             DragPos = { X = mX - window.X, Y = mY - window.Y }
@@ -306,7 +321,7 @@ end
 ---@param text string
 function ImMenu.Text(text)
     local x, y = ImMenu.Cursor.X, ImMenu.Cursor.Y
-    local width, height = draw.GetTextSize(text)
+    local width, height = ImMenu.GetSize(draw.GetTextSize(text))
 
     draw.Color(table.unpack(Colors.Text))
     ImMenu.DrawText(x, y, text)
@@ -322,7 +337,7 @@ function ImMenu.Checkbox(text, state)
     local x, y = ImMenu.Cursor.X, ImMenu.Cursor.Y
     local txtWidth, txtHeight = draw.GetTextSize(text)
     local boxSize = txtHeight + Style.Spacing * 2
-    local width, height = boxSize + Style.Spacing + txtWidth, boxSize
+    local width, height = ImMenu.GetSize(boxSize + Style.Spacing + txtWidth, boxSize)
     local hovered, clicked, active = ImMenu.GetInteraction(x, y, width, height, text)
 
     -- Box
@@ -354,7 +369,7 @@ end
 function ImMenu.Button(text)
     local x, y = ImMenu.Cursor.X, ImMenu.Cursor.Y
     local txtWidth, txtHeight = draw.GetTextSize(text)
-    local width, height = txtWidth + Style.Spacing * 2, txtHeight + Style.Spacing * 2
+    local width, height = ImMenu.GetSize(txtWidth + Style.Spacing * 2, txtHeight + Style.Spacing * 2)
     local hovered, clicked, active = ImMenu.GetInteraction(x, y, width, height, text)
 
     -- Background
@@ -372,7 +387,7 @@ end
 ---@param id Texture
 function ImMenu.Texture(id)
     local x, y = ImMenu.Cursor.X, ImMenu.Cursor.Y
-    local width, height = draw.GetTextureSize(id)
+    local width, height = ImMenu.GetSize(draw.GetTextureSize(id))
 
     draw.Color(255, 255, 255, 255)
     draw.TexturedRect(id, x, y, x + width, y + height)
