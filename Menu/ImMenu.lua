@@ -47,6 +47,7 @@ local Colors = {
     ItemActive = { 70, 70, 70, 255 },
     Highlight = { 180, 180, 180, 100 },
     HighlightActive = { 240, 240, 240, 140 },
+    Border = { 0, 0, 0, 255 }
 }
 
 ---@type ImStyle[]
@@ -54,7 +55,8 @@ local Style = {
     Font = Fonts.Verdana,
     Spacing = 5,
     FramePadding = 7,
-    ItemSize = nil
+    ItemSize = nil,
+    Border = false
 }
 
 -- Stacks
@@ -73,7 +75,7 @@ end
 
 --[[ Public Getters ]]
 
-function ImMenu.GetVersion() return 0.50 end
+function ImMenu.GetVersion() return 0.51 end
 function ImMenu.GetStyle() return table.readOnly(Style) end
 function ImMenu.GetColors() return table.readOnly(Colors) end
 
@@ -282,6 +284,11 @@ function ImMenu.Begin(title, visible)
     draw.Color(table.unpack(Colors.Window))
     draw.FilledRect(window.X, window.Y + titleHeight, window.X + window.W, window.Y + window.H + titleHeight)
 
+    if Style.Border then
+        ImMenu.SetNextColor(Colors.Border)
+        draw.OutlinedRect(window.X, window.Y + titleHeight, window.X + window.W, window.Y + window.H + titleHeight)
+    end
+
     -- Mouse drag
     if active then
         local mX, mY = table.unpack(input.GetMousePos())
@@ -344,6 +351,11 @@ function ImMenu.Checkbox(text, state)
     ImMenu.InteractionColor(hovered, active)
     draw.FilledRect(x, y, x + boxSize, y + boxSize)
 
+    if Style.Border then
+        ImMenu.SetNextColor(Colors.Border)
+        draw.OutlinedRect(x, y, x + boxSize, y + boxSize)
+    end
+
     -- Check
     if state then
         ImMenu.SetNextColor(Colors.Highlight)
@@ -376,6 +388,11 @@ function ImMenu.Button(text)
     ImMenu.InteractionColor(hovered, active)
     draw.FilledRect(x, y, x + width, y + height)
 
+    if Style.Border then
+        ImMenu.SetNextColor(Colors.Border)
+        draw.OutlinedRect(x, y, x + width, y + height)
+    end
+
     -- Text
     draw.Color(table.unpack(Colors.Text))
     ImMenu.DrawText(x + (width // 2) - (txtWidth // 2), y + (height // 2) - (txtHeight // 2), text)
@@ -391,6 +408,11 @@ function ImMenu.Texture(id)
 
     draw.Color(255, 255, 255, 255)
     draw.TexturedRect(id, x, y, x + width, y + height)
+
+    if Style.Border then
+        ImMenu.SetNextColor(Colors.Border)
+        draw.OutlinedRect(x, y, x + width, y + height)
+    end
 
     ImMenu.UpdateCursor(width, height)
 end
@@ -419,6 +441,12 @@ function ImMenu.Slider(text, value, min, max, step)
     ImMenu.SetNextColor(Colors.Highlight)
     draw.FilledRect(x, y, x + sliderWidth, y + height)
 
+    -- Border
+    if Style.Border then
+        ImMenu.SetNextColor(Colors.Border)
+        draw.OutlinedRect(x, y, x + width, y + height)
+    end
+
     -- Text
     ImMenu.SetNextColor(Colors.Text)
     ImMenu.DrawText(x + (width // 2) - (txtWidth // 2), y + (height // 2) - (txtHeight // 2), valText)
@@ -442,6 +470,8 @@ function ImMenu.Slider(text, value, min, max, step)
     return value, clicked
 end
 
+---@param text string
+---@param items string[]
 function ImMenu.List(text, items)
     ImMenu.BeginFrame()
 
@@ -449,7 +479,7 @@ function ImMenu.List(text, items)
     ImMenu.PushStyle("ItemSize", { 250, 30 })
     
     for _, item in ipairs(items) do
-        ImMenu.Button(item)
+        ImMenu.Button(tostring(item))
     end
 
     ImMenu.PopStyle()
