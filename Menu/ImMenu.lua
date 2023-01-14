@@ -71,7 +71,11 @@ end
 
 function ImMenu.GetStyle() return table.readOnly(Style) end
 function ImMenu.GetColors() return table.readOnly(Colors) end
+
+---@return ImWindow
 function ImMenu.GetCurrentWindow() return WindowStack:peek() end
+
+---@return ImFrame
 function ImMenu.GetCurrentFrame() return FrameStack:peek() end
 
 --[[ Public Setters ]]
@@ -224,6 +228,7 @@ end
 ---@param title string
 ---@param visible? boolean
 function ImMenu.Begin(title, visible)
+    visible = (visible == nil) or visible
     if not Windows[title] then
         Windows[title] = {
             X = 50,
@@ -301,7 +306,7 @@ end
 ---@param state boolean
 ---@return boolean, boolean
 function ImMenu.Checkbox(text, state)
-    local x, y = ImMenu.Cursor.X + Style.Spacing, ImMenu.Cursor.Y
+    local x, y = ImMenu.Cursor.X, ImMenu.Cursor.Y
     local txtWidth, txtHeight = draw.GetTextSize(text)
     local boxSize = txtHeight + Style.Spacing * 2
     local width, height = boxSize + Style.Spacing + txtWidth, boxSize
@@ -349,6 +354,63 @@ function ImMenu.Button(text)
 
     ImMenu.UpdateCursor(width, height)
     return clicked, active
+end
+
+---@param id Texture
+function ImMenu.Texture(id)
+    local x, y = ImMenu.Cursor.X + Style.Spacing, ImMenu.Cursor.Y
+    local width, height = draw.GetTextureSize(id)
+
+    draw.Color(255, 255, 255, 255)
+    draw.TexturedRect(id, x, y, x + width, y + height)
+
+    ImMenu.UpdateCursor(width, height)
+end
+
+-- Draws a slider that changes a value
+---@param text string
+---@param value number
+---@param min number
+---@param max number
+---@param step number
+---@return number, boolean
+function ImMenu.Slider(text, value, min, max, step)
+    step = step or 1
+    local x, y = ImMenu.Cursor.X, ImMenu.Cursor.Y
+    local valText = text .. ": " .. tostring(value)
+    local txtWidth, txtHeight = draw.GetTextSize(valText)
+    local frame = ImMenu.GetCurrentFrame()
+    local width, height = frame.W, txtHeight + Style.Spacing * 2
+    local sliderWidth = math.floor(width * (value - min) / (max - min))
+    local hovered, clicked, active = ImMenu.GetInteraction(x, y, width, height, text)
+
+    -- Background
+    ImMenu.InteractionColor(hovered, active)
+    draw.FilledRect(x, y, x + width, y + height)
+
+    -- Slider
+    ImMenu.SetNextColor(Colors.Highlight)
+    draw.FilledRect(x, y, x + sliderWidth, y + height)
+
+    -- Text
+    ImMenu.SetNextColor(Colors.Text)
+    ImMenu.DrawText(x + (width // 2) - (txtWidth // 2), y + (height // 2) - (txtHeight // 2), valText)
+
+    -- Update Value
+    if active then
+        local mX, mY = table.unpack(input.GetMousePos())
+        local percent = math.clamp((mX - x) / width, 0, 1)
+        value = math.round((min + (max - min) * percent) / step) * step
+    end
+
+    ImMenu.UpdateCursor(width, height)
+    return value, clicked
+end
+
+---@param size number
+function ImMenu.Space(size)
+    size = size or Style.Spacing
+    ImMenu.UpdateCursor(size, size)
 end
 
 return ImMenu
