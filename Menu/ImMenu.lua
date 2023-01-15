@@ -75,7 +75,7 @@ end
 
 --[[ Public Getters ]]
 
-function ImMenu.GetVersion() return 0.51 end
+function ImMenu.GetVersion() return 0.52 end
 function ImMenu.GetStyle() return table.readOnly(Style) end
 function ImMenu.GetColors() return table.readOnly(Colors) end
 
@@ -88,7 +88,7 @@ function ImMenu.GetCurrentFrame() return FrameStack:peek() end
 --[[ Public Setters ]]
 
 ---@param color ImColor
-function ImMenu.SetNextColor(color)
+function ImMenu.SetColor(color)
     draw.Color(UnpackColor(color))
 end
 
@@ -154,11 +154,11 @@ end
 ---@param active boolean
 function ImMenu.InteractionColor(hovered, active)
     if active then
-        ImMenu.SetNextColor(Colors.ItemActive)
+        ImMenu.SetColor(Colors.ItemActive)
     elseif hovered then
-        ImMenu.SetNextColor(Colors.ItemHover)
+        ImMenu.SetColor(Colors.ItemHover)
     else
-        ImMenu.SetNextColor(Colors.Item)
+        ImMenu.SetColor(Colors.Item)
     end
 end
 
@@ -285,7 +285,7 @@ function ImMenu.Begin(title, visible)
     draw.FilledRect(window.X, window.Y + titleHeight, window.X + window.W, window.Y + window.H + titleHeight)
 
     if Style.Border then
-        ImMenu.SetNextColor(Colors.Border)
+        ImMenu.SetColor(Colors.Border)
         draw.OutlinedRect(window.X, window.Y + titleHeight, window.X + window.W, window.Y + window.H + titleHeight)
     end
 
@@ -352,18 +352,18 @@ function ImMenu.Checkbox(text, state)
     draw.FilledRect(x, y, x + boxSize, y + boxSize)
 
     if Style.Border then
-        ImMenu.SetNextColor(Colors.Border)
+        ImMenu.SetColor(Colors.Border)
         draw.OutlinedRect(x, y, x + boxSize, y + boxSize)
     end
 
     -- Check
     if state then
-        ImMenu.SetNextColor(Colors.Highlight)
+        ImMenu.SetColor(Colors.Highlight)
         draw.FilledRect(x + Style.Spacing, y + Style.Spacing, x + (boxSize - Style.Spacing), y + (boxSize - Style.Spacing))
     end
 
     -- Text
-    ImMenu.SetNextColor(Colors.Text)
+    ImMenu.SetColor(Colors.Text)
     ImMenu.DrawText(x + boxSize + Style.Spacing, y + (height // 2) - (txtHeight // 2), text)
 
     -- Update State
@@ -389,7 +389,7 @@ function ImMenu.Button(text)
     draw.FilledRect(x, y, x + width, y + height)
 
     if Style.Border then
-        ImMenu.SetNextColor(Colors.Border)
+        ImMenu.SetColor(Colors.Border)
         draw.OutlinedRect(x, y, x + width, y + height)
     end
 
@@ -410,7 +410,7 @@ function ImMenu.Texture(id)
     draw.TexturedRect(id, x, y, x + width, y + height)
 
     if Style.Border then
-        ImMenu.SetNextColor(Colors.Border)
+        ImMenu.SetColor(Colors.Border)
         draw.OutlinedRect(x, y, x + width, y + height)
     end
 
@@ -438,17 +438,17 @@ function ImMenu.Slider(text, value, min, max, step)
     draw.FilledRect(x, y, x + width, y + height)
 
     -- Slider
-    ImMenu.SetNextColor(Colors.Highlight)
+    ImMenu.SetColor(Colors.Highlight)
     draw.FilledRect(x, y, x + sliderWidth, y + height)
 
     -- Border
     if Style.Border then
-        ImMenu.SetNextColor(Colors.Border)
+        ImMenu.SetColor(Colors.Border)
         draw.OutlinedRect(x, y, x + width, y + height)
     end
 
     -- Text
-    ImMenu.SetNextColor(Colors.Text)
+    ImMenu.SetColor(Colors.Text)
     ImMenu.DrawText(x + (width // 2) - (txtWidth // 2), y + (height // 2) - (txtHeight // 2), valText)
 
     -- Update Value
@@ -468,6 +468,32 @@ function ImMenu.Slider(text, value, min, max, step)
 
     ImMenu.UpdateCursor(width, height)
     return value, clicked
+end
+
+-- Draws a progress bar
+---@param value number
+---@param min number
+---@param max number
+function ImMenu.Progress(value, min, max)
+    local x, y = ImMenu.Cursor.X, ImMenu.Cursor.Y
+    local width, height = ImMenu.GetSize(250, 20)
+    local progressWidth = math.floor(width * (value - min) / (max - min))
+
+    -- Background
+    ImMenu.SetColor(Colors.Item)
+    draw.FilledRect(x, y, x + width, y + height)
+
+    -- Progress
+    ImMenu.SetColor(Colors.Highlight)
+    draw.FilledRect(x, y, x + progressWidth, y + height)
+
+    -- Border
+    if Style.Border then
+        ImMenu.SetColor(Colors.Border)
+        draw.OutlinedRect(x, y, x + width, y + height)
+    end
+
+    ImMenu.UpdateCursor(width, height)
 end
 
 ---@param text string
