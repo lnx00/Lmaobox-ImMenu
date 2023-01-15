@@ -48,6 +48,7 @@ local Colors = {
     Highlight = { 180, 180, 180, 100 },
     HighlightActive = { 240, 240, 240, 140 },
     WindowBorder = { 55, 100, 215, 255 },
+    FrameBorder = { 0, 0, 0, 200 },
     Border = { 0, 0, 0, 200 }
 }
 
@@ -57,7 +58,8 @@ local Style = {
     Spacing = 5,
     FramePadding = 7,
     ItemSize = nil,
-    WindowBorder = false,
+    WindowBorder = true,
+    FrameBorder = false,
     ButtonBorder = false,
     CheckboxBorder = false,
     SliderBorder = false,
@@ -80,7 +82,7 @@ end
 
 --[[ Public Getters ]]
 
-function ImMenu.GetVersion() return 0.53 end
+function ImMenu.GetVersion() return 0.54 end
 function ImMenu.GetStyle() return table.readOnly(Style) end
 function ImMenu.GetColors() return table.readOnly(Colors) end
 
@@ -222,6 +224,12 @@ function ImMenu.DrawText(x, y, text)
     draw.Text(x, y, text)
 end
 
+---@param size? number
+function ImMenu.Space(size)
+    size = size or Style.Spacing
+    ImMenu.UpdateCursor(size, size)
+end
+
 -- Begins a new frame
 ---@param align? integer
 function ImMenu.BeginFrame(align)
@@ -250,12 +258,14 @@ function ImMenu.EndFrame()
         frame.H = frame.H + Style.FramePadding * 2
     end
 
+    -- Border
+    if Style.FrameBorder then
+        ImMenu.SetColor(Colors.FrameBorder)
+        draw.OutlinedRect(frame.X, frame.Y, frame.X + frame.W, frame.Y + frame.H)
+    end
+
     -- Update the cursor
     ImMenu.UpdateCursor(frame.W, frame.H)
-
-    -- TODO: Remove this
-    --draw.Color(255, 0, 0, 50)
-    --draw.OutlinedRect(frame.X, frame.Y, frame.X + frame.W, frame.Y + frame.H)
 
     return frame
 end
@@ -341,10 +351,11 @@ end
 ---@param text string
 function ImMenu.Text(text)
     local x, y = ImMenu.Cursor.X, ImMenu.Cursor.Y
-    local width, height = ImMenu.GetSize(draw.GetTextSize(text))
+    local txtWidth, txtHeight = draw.GetTextSize(text)
+    local width, height = ImMenu.GetSize(txtWidth, txtHeight)
 
     draw.Color(table.unpack(Colors.Text))
-    ImMenu.DrawText(x, y, text)
+    ImMenu.DrawText(x + (width // 2) - (txtWidth // 2), y + (height // 2) - (txtHeight // 2), text)
 
     ImMenu.UpdateCursor(width, height)
 end
@@ -510,6 +521,33 @@ function ImMenu.Progress(value, min, max)
     ImMenu.UpdateCursor(width, height)
 end
 
+---@param selected integer
+---@param options any[]
+function ImMenu.Option(selected, options)
+    
+    ImMenu.PushStyle("ItemSize", { 25, 25 })
+    ImMenu.PushStyle("FramePadding", 0)
+    ImMenu.BeginFrame(1)
+
+    if ImMenu.Button("<") then
+        selected = selected - 1
+    end
+
+    ImMenu.PushStyle("ItemSize", { 190, 25 })
+    selected = ((selected - 1) % #options) + 1
+    ImMenu.Text(tostring(options[selected]))
+    ImMenu.PopStyle()
+
+    if ImMenu.Button(">") then
+        selected = selected + 1
+    end
+
+    ImMenu.EndFrame()
+    ImMenu.PopStyle(2)
+
+    return selected
+end
+
 ---@param text string
 ---@param items string[]
 function ImMenu.List(text, items)
@@ -524,12 +562,6 @@ function ImMenu.List(text, items)
 
     ImMenu.PopStyle()
     ImMenu.EndFrame()
-end
-
----@param size number
-function ImMenu.Space(size)
-    size = size or Style.Spacing
-    ImMenu.UpdateCursor(size, size)
 end
 
 return ImMenu
