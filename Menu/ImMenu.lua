@@ -47,7 +47,8 @@ local Colors = {
     ItemActive = { 70, 70, 70, 255 },
     Highlight = { 180, 180, 180, 100 },
     HighlightActive = { 240, 240, 240, 140 },
-    Border = { 0, 0, 0, 255 }
+    WindowBorder = { 55, 100, 215, 255 },
+    Border = { 0, 0, 0, 200 }
 }
 
 ---@type ImStyle[]
@@ -56,6 +57,10 @@ local Style = {
     Spacing = 5,
     FramePadding = 7,
     ItemSize = nil,
+    WindowBorder = false,
+    ButtonBorder = false,
+    CheckboxBorder = false,
+    SliderBorder = false,
     Border = false
 }
 
@@ -75,7 +80,7 @@ end
 
 --[[ Public Getters ]]
 
-function ImMenu.GetVersion() return 0.52 end
+function ImMenu.GetVersion() return 0.53 end
 function ImMenu.GetStyle() return table.readOnly(Style) end
 function ImMenu.GetColors() return table.readOnly(Colors) end
 
@@ -217,6 +222,8 @@ function ImMenu.DrawText(x, y, text)
     draw.Text(x, y, text)
 end
 
+-- Begins a new frame
+---@param align? integer
 function ImMenu.BeginFrame(align)
     align = align or 0
 
@@ -227,6 +234,8 @@ function ImMenu.BeginFrame(align)
     ImMenu.Cursor.Y = ImMenu.Cursor.Y + Style.FramePadding
 end
 
+-- Ends the current frame
+---@return ImFrame
 function ImMenu.EndFrame()
     ---@type ImFrame
     local frame = FrameStack:pop()
@@ -245,8 +254,8 @@ function ImMenu.EndFrame()
     ImMenu.UpdateCursor(frame.W, frame.H)
 
     -- TODO: Remove this
-    draw.Color(255, 0, 0, 50)
-    draw.OutlinedRect(frame.X, frame.Y, frame.X + frame.W, frame.Y + frame.H)
+    --draw.Color(255, 0, 0, 50)
+    --draw.OutlinedRect(frame.X, frame.Y, frame.X + frame.W, frame.Y + frame.H)
 
     return frame
 end
@@ -255,7 +264,9 @@ end
 ---@param title string
 ---@param visible? boolean
 function ImMenu.Begin(title, visible)
-    visible = (visible == nil) or visible
+    local isVisible = (visible == nil) or visible
+    if not isVisible then return false end
+
     if not Windows[title] then
         Windows[title] = {
             X = 50,
@@ -284,9 +295,11 @@ function ImMenu.Begin(title, visible)
     draw.Color(table.unpack(Colors.Window))
     draw.FilledRect(window.X, window.Y + titleHeight, window.X + window.W, window.Y + window.H + titleHeight)
 
-    if Style.Border then
-        ImMenu.SetColor(Colors.Border)
-        draw.OutlinedRect(window.X, window.Y + titleHeight, window.X + window.W, window.Y + window.H + titleHeight)
+    -- Border
+    if Style.WindowBorder then
+        ImMenu.SetColor(Colors.WindowBorder)
+        draw.OutlinedRect(window.X, window.Y, window.X + window.W, window.Y + window.H + titleHeight)
+        draw.Line(window.X, window.Y + titleHeight, window.X + window.W, window.Y + titleHeight)
     end
 
     -- Mouse drag
@@ -310,7 +323,7 @@ function ImMenu.Begin(title, visible)
     Windows[title] = window
     WindowStack:push(window)
 
-    return visible
+    return true
 end
 
 -- Ends the current window
@@ -351,7 +364,8 @@ function ImMenu.Checkbox(text, state)
     ImMenu.InteractionColor(hovered, active)
     draw.FilledRect(x, y, x + boxSize, y + boxSize)
 
-    if Style.Border then
+    -- Border
+    if Style.CheckboxBorder then
         ImMenu.SetColor(Colors.Border)
         draw.OutlinedRect(x, y, x + boxSize, y + boxSize)
     end
@@ -388,7 +402,7 @@ function ImMenu.Button(text)
     ImMenu.InteractionColor(hovered, active)
     draw.FilledRect(x, y, x + width, y + height)
 
-    if Style.Border then
+    if Style.ButtonBorder then
         ImMenu.SetColor(Colors.Border)
         draw.OutlinedRect(x, y, x + width, y + height)
     end
@@ -442,7 +456,7 @@ function ImMenu.Slider(text, value, min, max, step)
     draw.FilledRect(x, y, x + sliderWidth, y + height)
 
     -- Border
-    if Style.Border then
+    if Style.SliderBorder then
         ImMenu.SetColor(Colors.Border)
         draw.OutlinedRect(x, y, x + width, y + height)
     end
