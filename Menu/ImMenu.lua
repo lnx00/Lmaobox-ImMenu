@@ -81,7 +81,7 @@ end
 
 --[[ Public Getters ]]
 
-function ImMenu.GetVersion() return 0.56 end
+function ImMenu.GetVersion() return 0.57 end
 function ImMenu.GetStyle() return table.readOnly(Style) end
 function ImMenu.GetColors() return table.readOnly(Colors) end
 
@@ -184,14 +184,14 @@ end
 ---@param id string
 ---@return boolean, boolean, boolean
 function ImMenu.GetInteraction(x, y, width, height, id)
+    -- Is a different element active?
+    if ImMenu.ActiveItem ~= nil and ImMenu.ActiveItem ~= id then
+        return false, false, false
+    end
+    
     local hovered = Input.MouseInBounds(x, y, x + width, y + height) or id == ImMenu.ActiveItem
     local clicked = hovered and (MouseHelper:Pressed() or EnterHelper:Pressed())
     local active = hovered and (MouseHelper:Down() or EnterHelper:Down())
-
-    -- Is a different element active?
-    if ImMenu.ActiveItem ~= nil and ImMenu.ActiveItem ~= id then
-        return hovered, false, false
-    end
 
     -- Should this element be active?
     if active and ImMenu.ActiveItem == nil then
@@ -206,16 +206,13 @@ function ImMenu.GetInteraction(x, y, width, height, id)
     return hovered, clicked, active
 end
 
----@param x integer
----@param y integer
 ---@param text string
-function ImMenu.DrawText(x, y, text)
+function ImMenu.GetLabel(text)
     for label in text:gmatch("(.+)###(.+)") do
-        draw.Text(x, y, label)
-        return
+        return label
     end
 
-    draw.Text(x, y, text)
+    return text
 end
 
 ---@param size? number
@@ -248,8 +245,10 @@ function ImMenu.EndFrame()
     -- Apply padding
     if frame.A == 0 then
         frame.W = frame.W + Style.FramePadding * 2
+        frame.H = frame.H + Style.FramePadding - Style.Spacing
     elseif frame.A == 1 then
         frame.H = frame.H + Style.FramePadding * 2
+        frame.W = frame.W + Style.FramePadding - Style.Spacing
     end
 
     -- Border
@@ -282,7 +281,8 @@ function ImMenu.Begin(title, visible)
 
     draw.SetFont(Style.Font)
     local window = Windows[title]
-    local txtWidth, txtHeight = draw.GetTextSize(title)
+    local titleText = ImMenu.GetLabel(title)
+    local txtWidth, txtHeight = draw.GetTextSize(titleText)
     local titleHeight = txtHeight + Style.Spacing
     local hovered, clicked, active = ImMenu.GetInteraction(window.X, window.Y, window.W, titleHeight, title)
 
@@ -293,7 +293,7 @@ function ImMenu.Begin(title, visible)
 
     -- Title text
     draw.Color(table.unpack(Colors.Text))
-    ImMenu.DrawText(window.X + (window.W // 2) - (txtWidth // 2), window.Y + (20 // 2) - (txtHeight // 2), title)
+    draw.Text(window.X + (window.W // 2) - (txtWidth // 2), window.Y + (20 // 2) - (txtHeight // 2), titleText)
 
     -- Background
     draw.Color(table.unpack(Colors.Window))
@@ -345,11 +345,12 @@ end
 ---@param text string
 function ImMenu.Text(text)
     local x, y = ImMenu.Cursor.X, ImMenu.Cursor.Y
-    local txtWidth, txtHeight = draw.GetTextSize(text)
+    local label = ImMenu.GetLabel(text)
+    local txtWidth, txtHeight = draw.GetTextSize(label)
     local width, height = ImMenu.GetSize(txtWidth, txtHeight)
 
     draw.Color(table.unpack(Colors.Text))
-    ImMenu.DrawText(x + (width // 2) - (txtWidth // 2), y + (height // 2) - (txtHeight // 2), text)
+    draw.Text(x + (width // 2) - (txtWidth // 2), y + (height // 2) - (txtHeight // 2), label)
 
     ImMenu.UpdateCursor(width, height)
 end
@@ -360,7 +361,8 @@ end
 ---@return boolean, boolean
 function ImMenu.Checkbox(text, state)
     local x, y = ImMenu.Cursor.X, ImMenu.Cursor.Y
-    local txtWidth, txtHeight = draw.GetTextSize(text)
+    local label = ImMenu.GetLabel(text)
+    local txtWidth, txtHeight = draw.GetTextSize(label)
     local boxSize = txtHeight + Style.Spacing * 2
     local width, height = ImMenu.GetSize(boxSize + Style.Spacing + txtWidth, boxSize)
     local hovered, clicked, active = ImMenu.GetInteraction(x, y, width, height, text)
@@ -383,7 +385,7 @@ function ImMenu.Checkbox(text, state)
 
     -- Text
     draw.Color(UnpackColor(Colors.Text))
-    ImMenu.DrawText(x + boxSize + Style.Spacing, y + (height // 2) - (txtHeight // 2), text)
+    draw.Text(x + boxSize + Style.Spacing, y + (height // 2) - (txtHeight // 2), label)
 
     -- Update State
     if clicked then
@@ -399,7 +401,8 @@ end
 ---@return boolean, boolean
 function ImMenu.Button(text)
     local x, y = ImMenu.Cursor.X, ImMenu.Cursor.Y
-    local txtWidth, txtHeight = draw.GetTextSize(text)
+    local label = ImMenu.GetLabel(text)
+    local txtWidth, txtHeight = draw.GetTextSize(label)
     local width, height = ImMenu.GetSize(txtWidth + Style.Spacing * 2, txtHeight + Style.Spacing * 2)
     local hovered, clicked, active = ImMenu.GetInteraction(x, y, width, height, text)
 
@@ -414,7 +417,7 @@ function ImMenu.Button(text)
 
     -- Text
     draw.Color(table.unpack(Colors.Text))
-    ImMenu.DrawText(x + (width // 2) - (txtWidth // 2), y + (height // 2) - (txtHeight // 2), text)
+    draw.Text(x + (width // 2) - (txtWidth // 2), y + (height // 2) - (txtHeight // 2), label)
 
     ImMenu.UpdateCursor(width, height)
     return clicked, active
@@ -446,8 +449,8 @@ end
 function ImMenu.Slider(text, value, min, max, step)
     step = step or 1
     local x, y = ImMenu.Cursor.X, ImMenu.Cursor.Y
-    local valText = string.format("%s: %s", text, value)
-    local txtWidth, txtHeight = draw.GetTextSize(valText)
+    local label = string.format("%s: %s", ImMenu.GetLabel(text), value)
+    local txtWidth, txtHeight = draw.GetTextSize(label)
     local width, height = ImMenu.GetSize(250, txtHeight + Style.Spacing * 2)
     local sliderWidth = math.floor(width * (value - min) / (max - min))
     local hovered, clicked, active = ImMenu.GetInteraction(x, y, width, height, text)
@@ -468,7 +471,7 @@ function ImMenu.Slider(text, value, min, max, step)
 
     -- Text
     draw.Color(UnpackColor(Colors.Text))
-    ImMenu.DrawText(x + (width // 2) - (txtWidth // 2), y + (height // 2) - (txtHeight // 2), valText)
+    draw.Text(x + (width // 2) - (txtWidth // 2), y + (height // 2) - (txtHeight // 2), label)
 
     -- Update Value
     if active then
@@ -495,7 +498,7 @@ end
 ---@param max number
 function ImMenu.Progress(value, min, max)
     local x, y = ImMenu.Cursor.X, ImMenu.Cursor.Y
-    local width, height = ImMenu.GetSize(250, 20)
+    local width, height = ImMenu.GetSize(250, 15)
     local progressWidth = math.floor(width * (value - min) / (max - min))
 
     -- Background
@@ -526,15 +529,18 @@ function ImMenu.Option(selected, options)
     ImMenu.PushStyle("FramePadding", 0)
     ImMenu.BeginFrame(1)
 
-    if ImMenu.Button("<") then
+    -- Last Item button
+    if ImMenu.Button("<###" .. tostring(options)) then
         selected = ((selected - 2) % #options) + 1
     end
 
+    -- Current Item
     ImMenu.PushStyle("ItemSize", { width - (2 * btnSize) - (2 * Style.Spacing), height })
     ImMenu.Text(tostring(options[selected]))
     ImMenu.PopStyle()
 
-    if ImMenu.Button(">") then
+    -- Next Item button
+    if ImMenu.Button(">###" .. tostring(options)) then
         selected = (selected % #options) + 1
     end
 
@@ -550,17 +556,20 @@ function ImMenu.List(text, items)
     local txtWidth, txtHeight = draw.GetTextSize(text)
     local width, height = ImMenu.GetSize(250, txtHeight + Style.Spacing * 2)
 
+    ImMenu.PushStyle("FramePadding", 0)
+    ImMenu.PushStyle("ItemSize", { width, height })
     ImMenu.BeginFrame()
 
+    -- Title
     ImMenu.Text(text)
-    ImMenu.PushStyle("ItemSize", { width, height })
-    
+
+    -- Items
     for _, item in ipairs(items) do
         ImMenu.Button(tostring(item))
     end
 
-    ImMenu.PopStyle()
     ImMenu.EndFrame()
+    ImMenu.PopStyle(2)
 end
 
 Lib.UI.Notify.Simple("ImMenu loaded", string.format("Version: %.2f", ImMenu.GetVersion()))
