@@ -76,13 +76,12 @@ local StyleStack = Stack.new()
 
 ---@param color ImColor
 local function UnpackColor(color)
-    color[4] = color[4] or 255
-    return table.unpack(color)
+    return color[1], color[2], color[3], color[4] or 255
 end
 
 --[[ Public Getters ]]
 
-function ImMenu.GetVersion() return 0.55 end
+function ImMenu.GetVersion() return 0.56 end
 function ImMenu.GetStyle() return table.readOnly(Style) end
 function ImMenu.GetColors() return table.readOnly(Colors) end
 
@@ -500,7 +499,7 @@ function ImMenu.Progress(value, min, max)
     local progressWidth = math.floor(width * (value - min) / (max - min))
 
     -- Background
-    draw.Color(UnpackColor(Colors.Text))
+    draw.Color(UnpackColor(Colors.Item))
     draw.FilledRect(x, y, x + width, y + height)
 
     -- Progress
@@ -519,22 +518,24 @@ end
 ---@param selected integer
 ---@param options any[]
 function ImMenu.Option(selected, options)
-    
-    ImMenu.PushStyle("ItemSize", { 25, 25 })
+    local txtWidth, txtHeight = draw.GetTextSize("#")
+    local btnSize = txtHeight + 2 * Style.Spacing
+    local width, height = ImMenu.GetSize(250, txtHeight)
+
+    ImMenu.PushStyle("ItemSize", { btnSize, btnSize })
     ImMenu.PushStyle("FramePadding", 0)
     ImMenu.BeginFrame(1)
 
     if ImMenu.Button("<") then
-        selected = selected - 1
+        selected = ((selected - 2) % #options) + 1
     end
 
-    ImMenu.PushStyle("ItemSize", { 190, 25 })
-    selected = ((selected - 1) % #options) + 1
+    ImMenu.PushStyle("ItemSize", { width - (2 * btnSize) - (2 * Style.Spacing), height })
     ImMenu.Text(tostring(options[selected]))
     ImMenu.PopStyle()
 
     if ImMenu.Button(">") then
-        selected = selected + 1
+        selected = (selected % #options) + 1
     end
 
     ImMenu.EndFrame()
@@ -546,10 +547,13 @@ end
 ---@param text string
 ---@param items string[]
 function ImMenu.List(text, items)
+    local txtWidth, txtHeight = draw.GetTextSize(text)
+    local width, height = ImMenu.GetSize(250, txtHeight + Style.Spacing * 2)
+
     ImMenu.BeginFrame()
 
     ImMenu.Text(text)
-    ImMenu.PushStyle("ItemSize", { 250, 30 })
+    ImMenu.PushStyle("ItemSize", { width, height })
     
     for _, item in ipairs(items) do
         ImMenu.Button(tostring(item))
