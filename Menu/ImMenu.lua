@@ -81,7 +81,7 @@ end
 
 --[[ Public Getters ]]
 
-function ImMenu.GetVersion() return 0.57 end
+function ImMenu.GetVersion() return 0.58 end
 function ImMenu.GetStyle() return table.readOnly(Style) end
 function ImMenu.GetColors() return table.readOnly(Colors) end
 
@@ -219,6 +219,16 @@ end
 function ImMenu.Space(size)
     size = size or Style.Spacing
     ImMenu.UpdateCursor(size, size)
+end
+
+function ImMenu.Separator()
+    local x, y = ImMenu.Cursor.X, ImMenu.Cursor.Y
+    local width, height = ImMenu.GetSize(250, Style.Spacing * 2)
+
+    draw.Color(UnpackColor(Colors.WindowBorder))
+    draw.Line(x, y + height // 2, x + width, y + height // 2)
+
+    ImMenu.UpdateCursor(width, height)
 end
 
 -- Begins a new frame
@@ -444,7 +454,7 @@ end
 ---@param value number
 ---@param min number
 ---@param max number
----@param step number
+---@param step? number
 ---@return number, boolean
 function ImMenu.Slider(text, value, min, max, step)
     step = step or 1
@@ -520,6 +530,7 @@ end
 
 ---@param selected integer
 ---@param options any[]
+---@return integer selected
 function ImMenu.Option(selected, options)
     local txtWidth, txtHeight = draw.GetTextSize("#")
     local btnSize = txtHeight + 2 * Style.Spacing
@@ -570,6 +581,28 @@ function ImMenu.List(text, items)
 
     ImMenu.EndFrame()
     ImMenu.PopStyle(2)
+end
+
+---@param tabs string[]
+---@param currentTab integer
+---@return integer currentTab
+function ImMenu.TabControl(tabs, currentTab)
+    ImMenu.PushStyle("FramePadding", 0)
+    ImMenu.PushStyle("ItemSize", { 100, 25 })
+    ImMenu.PushStyle("Spacing", 0)
+    ImMenu.BeginFrame(1)
+
+    -- Items
+    for i, item in ipairs(tabs) do
+        if ImMenu.Button(tostring(item)) then
+            currentTab = i
+        end
+    end
+
+    ImMenu.EndFrame()
+    ImMenu.PopStyle(3)
+
+    return currentTab
 end
 
 Lib.UI.Notify.Simple("ImMenu loaded", string.format("Version: %.2f", ImMenu.GetVersion()))
