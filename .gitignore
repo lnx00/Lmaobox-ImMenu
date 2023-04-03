@@ -402,6 +402,3 @@ dist
 # Draw.io
 *.bkp
 *.dtmp
-
-ImMenu.lua
-ImMenu.min.lua
