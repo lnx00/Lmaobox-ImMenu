@@ -403,4 +403,5 @@ dist
 *.bkp
 *.dtmp
 
-LNX-Library.lua
+ImMenu.lua
+ImMenu.min.lua
