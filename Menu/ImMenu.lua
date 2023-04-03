@@ -1,6 +1,6 @@
 if UnloadLib ~= nil then UnloadLib() end
 
----@type boolean, LNXlib
+---@type boolean, lnxLib
 local libLoaded, Lib = pcall(require, "LNXlib")
 assert(libLoaded, "LNXlib not found, please install it!")
 assert(Lib.GetVersion() >= 0.94, "LNXlib version is too old, please update it!")
@@ -13,6 +13,9 @@ local Fonts, KeyHelper, Input = Lib.UI.Fonts, Lib.Utils.KeyHelper, Lib.Utils.Inp
 ---@alias ImFrame { X : integer, Y : integer, W : integer, H : integer, A : integer }
 ---@alias ImColor table<integer, integer, integer, integer?>
 ---@alias ImStyle any
+
+-- Globals
+ImAlign = { Vertical = 0, Horizontal = 1 }
 
 ---@class ImMenu
 ---@field public Cursor { X : integer, Y : integer }
@@ -81,7 +84,7 @@ end
 
 --[[ Public Getters ]]
 
-function ImMenu.GetVersion() return 0.58 end
+function ImMenu.GetVersion() return 0.59 end
 function ImMenu.GetStyle() return table.readOnly(Style) end
 function ImMenu.GetColors() return table.readOnly(Colors) end
 
@@ -165,7 +168,7 @@ end
 
 ---@param width integer
 ---@param height integer
----@return integer, integer
+---@return integer width, integer height
 function ImMenu.GetSize(width, height)
     if Style.ItemSize ~= nil then
         local frame = ImMenu.GetCurrentFrame()
@@ -182,7 +185,7 @@ end
 ---@param width number
 ---@param height number
 ---@param id string
----@return boolean, boolean, boolean
+---@return boolean hovered, boolean clicked, boolean active
 function ImMenu.GetInteraction(x, y, width, height, id)
     -- Is a different element active?
     if ImMenu.ActiveItem ~= nil and ImMenu.ActiveItem ~= id then
@@ -244,7 +247,7 @@ function ImMenu.BeginFrame(align)
 end
 
 -- Ends the current frame
----@return ImFrame
+---@return ImFrame frame
 function ImMenu.EndFrame()
     ---@type ImFrame
     local frame = FrameStack:pop()
@@ -368,7 +371,7 @@ end
 -- Draws a checkbox that toggles a value
 ---@param text string
 ---@param state boolean
----@return boolean, boolean
+---@return boolean state, boolean clicked
 function ImMenu.Checkbox(text, state)
     local x, y = ImMenu.Cursor.X, ImMenu.Cursor.Y
     local label = ImMenu.GetLabel(text)
@@ -408,7 +411,7 @@ end
 
 -- Draws a button
 ---@param text string
----@return boolean, boolean
+---@return boolean clicked, boolean active
 function ImMenu.Button(text)
     local x, y = ImMenu.Cursor.X, ImMenu.Cursor.Y
     local label = ImMenu.GetLabel(text)
@@ -455,7 +458,7 @@ end
 ---@param min number
 ---@param max number
 ---@param step? number
----@return number, boolean
+---@return number value, boolean clicked
 function ImMenu.Slider(text, value, min, max, step)
     step = step or 1
     local x, y = ImMenu.Cursor.X, ImMenu.Cursor.Y
