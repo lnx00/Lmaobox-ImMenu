@@ -5,11 +5,11 @@ The syntax is similar to ImGui and is very easy to use.
 
 You can easily customize menu styles and colors using the style stack.
 
-ImMenu requires [LNXlib](https://github.com/lnx00/Lmaobox-Library).
+ImMenu requires [lnxLib](https://github.com/lnx00/Lmaobox-Library).
 
 ## Installation
 
-1. Make sure [LNXlib](https://github.com/lnx00/Lmaobox-Library) is installed
+1. Make sure [lnxLib](https://github.com/lnx00/Lmaobox-Library) is installed
 2. Download the latest release
 3. Extract `ImMenu.lua` to your `%localappdata%` folder
 
