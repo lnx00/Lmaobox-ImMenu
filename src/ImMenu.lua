@@ -1,3 +1,8 @@
+--[[
+    Immediate mode menu library for Lmaobox
+    Author: github.com/lnx00
+]]
+
 if UnloadLib ~= nil then UnloadLib() end
 
 -- Import lnxLib

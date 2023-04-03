@@ -1,3 +1,11 @@
+--[[
+    File browser for ImMenu
+    Author: github.com/lnx00
+
+    ImMenu Styles:
+    - FileBrowser_ListSize: number
+]]
+
 ---@type ImMenu
 local ImMenu = require("ImMenu")
 
@@ -5,7 +13,6 @@ local ImMenu = require("ImMenu")
 
 local currentPath = "./"
 local currentOffset = 1
-local listSize = 10
 
 ---@param path string
 ---@return ImFile[]
@@ -25,6 +32,7 @@ end
 ---@return string|nil selectedFile
 function ImMenu.FileBrowser()
     local selectedFile = nil
+    local listSize = ImMenu.GetStyle()["FileBrowser_ListSize"] or 10
 
     if ImMenu.Begin("File Browser", true) then
         local fileList = GetFileList(currentPath)
@@ -65,7 +73,7 @@ function ImMenu.FileBrowser()
                 ImMenu.Text("No files found")
             end
 
-            for i = currentOffset, currentOffset + listSize do
+            for i = currentOffset, currentOffset + listSize - 1 do
                 local file = fileList[i]
                 if file then
                     local isFolder = file.attributes == FILE_ATTRIBUTE_DIRECTORY
