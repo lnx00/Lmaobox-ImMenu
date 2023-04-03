@@ -1,12 +1,15 @@
 if UnloadLib ~= nil then UnloadLib() end
 
+-- Import lnxLib
 ---@type boolean, lnxLib
-local libLoaded, Lib = pcall(require, "LNXlib")
+local libLoaded, lnxLib = pcall(require, "LNXlib")
 assert(libLoaded, "LNXlib not found, please install it!")
-assert(Lib.GetVersion() >= 0.94, "LNXlib version is too old, please update it!")
+assert(lnxLib.GetVersion() >= 0.94, "LNXlib version is too old, please update it!")
 
-local Fonts, KeyHelper, Input = Lib.UI.Fonts, Lib.Utils.KeyHelper, Lib.Utils.Input
+local Fonts, Notify = lnxLib.UI.Fonts, lnxLib.UI.Notify
+local KeyHelper, Input = lnxLib.Utils.KeyHelper, lnxLib.Utils.Input
 
+-- Annotation aliases
 ---@alias ImItemID string
 ---@alias ImPos { X : integer, Y : integer }
 ---@alias ImRect { X : integer, Y : integer, W : integer, H : integer }
@@ -14,7 +17,9 @@ local Fonts, KeyHelper, Input = Lib.UI.Fonts, Lib.Utils.KeyHelper, Lib.Utils.Inp
 ---@alias ImColor table<integer, integer, integer, integer?>
 ---@alias ImStyle any
 
--- Globals
+--[[ Globals ]]
+
+---@enum ImAlign
 ImAlign = { Vertical = 0, Horizontal = 1 }
 
 ---@class ImMenu
@@ -84,7 +89,7 @@ end
 
 --[[ Public Getters ]]
 
-function ImMenu.GetVersion() return 0.59 end
+function ImMenu.GetVersion() return 0.61 end
 function ImMenu.GetStyle() return table.readOnly(Style) end
 function ImMenu.GetColors() return table.readOnly(Colors) end
 
@@ -133,6 +138,20 @@ function ImMenu.PopStyle(amount)
 end
 
 --[[ Public Functions ]]
+
+-- Creates a new color attribute
+---@param key string
+---@param value any
+function ImMenu.AddColor(key, value)
+    Colors[key] = value
+end
+
+-- Creates a new style attribute
+---@param key string
+---@param value any
+function ImMenu.AddStyle(key, value)
+    Style[key] = value
+end
 
 -- Updates the cursor and current frame size
 function ImMenu.UpdateCursor(w, h)
@@ -432,6 +451,10 @@ function ImMenu.Button(text)
     draw.Color(table.unpack(Colors.Text))
     draw.Text(x + (width // 2) - (txtWidth // 2), y + (height // 2) - (txtHeight // 2), label)
 
+    if clicked then
+        ImMenu.ActiveItem = nil
+    end
+
     ImMenu.UpdateCursor(width, height)
     return clicked, active
 end
@@ -608,6 +631,6 @@ function ImMenu.TabControl(tabs, currentTab)
     return currentTab
 end
 
-Lib.UI.Notify.Simple("ImMenu loaded", string.format("Version: %.2f", ImMenu.GetVersion()))
+lnxLib.UI.Notify.Simple("ImMenu loaded", string.format("Version: %.2f", ImMenu.GetVersion()))
 
 return ImMenu
