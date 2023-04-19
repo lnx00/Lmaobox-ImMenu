@@ -637,7 +637,7 @@ function ImMenu.Option(selected, options)
     end
 
     -- Current Item
-    ImMenu.PushStyle("ItemSize", { width - (2 * btnSize) - (2 * Style.Spacing), height })
+    ImMenu.PushStyle("ItemSize", { width - (2 * btnSize) - (2 * Style.Spacing), btnSize })
     ImMenu.Text(tostring(options[selected]))
     ImMenu.PopStyle()
 
