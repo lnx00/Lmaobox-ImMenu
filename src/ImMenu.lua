@@ -7,9 +7,9 @@ if UnloadLib ~= nil then UnloadLib() end
 
 -- Import lnxLib
 ---@type boolean, lnxLib
-local libLoaded, lnxLib = pcall(require, "LNXlib")
-assert(libLoaded, "LNXlib not found, please install it!")
-assert(lnxLib.GetVersion() >= 0.94, "LNXlib version is too old, please update it!")
+local libLoaded, lnxLib = pcall(require, "lnxLib")
+assert(libLoaded, "lnxLib not found, please install it!")
+assert(lnxLib.GetVersion() >= 0.94, "lnxLib version is too old, please update it!")
 
 local Fonts, Notify = lnxLib.UI.Fonts, lnxLib.UI.Notify
 local KeyHelper, Input = lnxLib.Utils.KeyHelper, lnxLib.Utils.Input
@@ -17,7 +17,7 @@ local KeyHelper, Input = lnxLib.Utils.KeyHelper, lnxLib.Utils.Input
 -- Annotation aliases
 ---@alias ImItemID string
 ---@alias ImPos { X : integer, Y : integer }
----@alias ImWindow { X : integer, Y : integer, W : integer, H : integer, P : boolean }
+---@alias ImWindow { X : integer, Y : integer, W : integer, H : integer }
 ---@alias ImFrame { X : integer, Y : integer, W : integer, H : integer, A : integer }
 ---@alias ImColor table<integer, integer, integer, integer?>
 ---@alias ImStyle any
@@ -28,9 +28,8 @@ local KeyHelper, Input = lnxLib.Utils.KeyHelper, lnxLib.Utils.Input
 ImAlign = { Vertical = 0, Horizontal = 1 }
 
 ---@class ImMenu
----@field public Cursor { X : integer, Y : integer }
+---@field public Cursor ImPos
 ---@field public ActiveItem ImItemID|nil
----@field public ActivePopup ImItemID|nil
 local ImMenu = {
     Cursor = { X = 0, Y = 0 },
     ActiveItem = nil,
@@ -91,16 +90,8 @@ local FrameStack = Stack.new()
 local ColorStack = Stack.new()
 local StyleStack = Stack.new()
 
----@type draw
-local lateDraw = {}
-setmetatable(lateDraw, {
-    __index = function(_, key)
-        return function(...)
-            local args = { ... }
-            table.insert(LateDrawList, function() draw[key](table.unpack(args)) end)
-        end
-    end
-})
+-- State
+local inPopup = false
 
 --[[ Private Functions ]]
 
@@ -244,6 +235,11 @@ function ImMenu.GetInteraction(x, y, width, height, id)
     if ImMenu.ActiveItem ~= nil and ImMenu.ActiveItem ~= id then
         return false, false, false
     end
+
+    -- Is a popup active?
+    if ImMenu.ActivePopup ~= nil and not inPopup then
+        return false, false, false
+    end
     
     local hovered = Input.MouseInBounds(x, y, x + width, y + height) or id == ImMenu.ActiveItem
     local clicked = hovered and (MouseHelper:Pressed() or EnterHelper:Pressed())
@@ -332,9 +328,8 @@ end
 -- Begins a new window
 ---@param title string
 ---@param visible? boolean
----@param popup? boolean
 ---@return boolean visible
-function ImMenu.Begin(title, visible, popup)
+function ImMenu.Begin(title, visible)
     local isVisible = (visible == nil) or visible
     if not isVisible then return false end
 
@@ -344,8 +339,7 @@ function ImMenu.Begin(title, visible, popup)
             X = 50,
             Y = 150,
             W = 100,
-            H = 100,
-            P = popup or false
+            H = 100
         }
     end
 
@@ -417,18 +411,30 @@ function ImMenu.End()
     end
 end
 
----@param title string
+-- Runs the given function after the current window has been drawn
+function ImMenu.DrawLate(func)
+    table.insert(LateDrawList, func)
+end
+
 ---@param x integer
 ---@param y integer
----@param w integer
----@param h integer
 ---@param func function
-function ImMenu.Popup(title, x, y, w, h, func)
-    table.insert(LateDrawList, function()
-        if ImMenu.Begin(title, true, true) then
-            func()
-            ImMenu.End()
+function ImMenu.Popup(x, y, func)
+    ImMenu.DrawLate(function()
+        inPopup = true
+
+        ImMenu.Cursor.X = x
+        ImMenu.Cursor.Y = y
+        ImMenu.BeginFrame()
+        func()
+        local frame = ImMenu.EndFrame()
+
+        -- Close the popup if clicked outside of it
+        if not Input.MouseInBounds(frame.X, frame.Y, frame.X + frame.W, frame.Y + frame.H) and MouseHelper:Pressed() then
+            ImMenu.ActivePopup = nil
         end
+
+        inPopup = false
     end)
 end
 
@@ -671,30 +677,26 @@ end
 function ImMenu.Combo(text, selected, options)
     local txtWidth, txtHeight = draw.GetTextSize(text)
     local width, height = ImMenu.GetSize(250, txtHeight + Style.Spacing * 2)
-    local comboId = "Combo" .. text
+    local popupId = "Combo" .. text
 
     ImMenu.PushStyle("ItemSize", { width, height })
     if ImMenu.Button(text) then
-        ImMenu.ActiveItem = comboId
+        ImMenu.ActivePopup = popupId
     end
 
-    if ImMenu.ActiveItem == comboId then
-        ImMenu.Popup(comboId, 0, 0, 0, 0, function ()
+    if ImMenu.ActivePopup == popupId then
+        ImMenu.Popup(ImMenu.Cursor.X, ImMenu.Cursor.Y, function ()
             ImMenu.PushStyle("ItemSize", { width, height })
 
             for i, option in ipairs(options) do
                 if ImMenu.Button(tostring(option)) then
                     selected = i
-                    ImMenu.ActiveItem = nil
+                    ImMenu.ActivePopup = nil
                 end
             end
 
             ImMenu.PopStyle()
         end)
-        --[[ImMenu.DrawLate(function ()
-            draw.Color(255, 255, 255, 255)
-            draw.Text(10, 50, "Combo open!")
-        end)]]
     end
 
     ImMenu.PopStyle()
