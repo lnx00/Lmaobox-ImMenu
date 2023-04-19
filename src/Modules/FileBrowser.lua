@@ -59,7 +59,7 @@ function ImMenu.FileBrowser()
             end
 
             if ImMenu.Button("v") then
-                currentOffset = math.clamp(currentOffset + 1, 1, fileCount - listSize)
+                currentOffset = math.clamp(currentOffset + 1, 1, fileCount - listSize + 1)
             end
 
             ImMenu.EndFrame()
