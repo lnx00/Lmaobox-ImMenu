@@ -17,7 +17,7 @@ local KeyHelper, Input = lnxLib.Utils.KeyHelper, lnxLib.Utils.Input
 -- Annotation aliases
 ---@alias ImItemID string
 ---@alias ImPos { X : integer, Y : integer }
----@alias ImRect { X : integer, Y : integer, W : integer, H : integer }
+---@alias ImWindow { X : integer, Y : integer, W : integer, H : integer, P : boolean }
 ---@alias ImFrame { X : integer, Y : integer, W : integer, H : integer, A : integer }
 ---@alias ImColor table<integer, integer, integer, integer?>
 ---@alias ImStyle any
@@ -30,9 +30,11 @@ ImAlign = { Vertical = 0, Horizontal = 1 }
 ---@class ImMenu
 ---@field public Cursor { X : integer, Y : integer }
 ---@field public ActiveItem ImItemID|nil
+---@field public ActivePopup ImItemID|nil
 local ImMenu = {
     Cursor = { X = 0, Y = 0 },
-    ActiveItem = nil
+    ActiveItem = nil,
+    ActivePopup = nil
 }
 
 --[[ Variables ]]
@@ -47,8 +49,11 @@ local EnterHelper = KeyHelper.new(KEY_ENTER)
 local LeftArrow = KeyHelper.new(KEY_LEFT)
 local RightArrow = KeyHelper.new(KEY_RIGHT)
 
----@type table<string, ImRect>
+---@type table<string, ImWindow>
 local Windows = {}
+
+---@type function[]
+local LateDrawList = {}
 
 ---@type ImColor[]
 local Colors = {
@@ -76,7 +81,8 @@ local Style = {
     ButtonBorder = false,
     CheckboxBorder = false,
     SliderBorder = false,
-    Border = false
+    Border = false,
+    Popup = false
 }
 
 -- Stacks
@@ -84,6 +90,17 @@ local WindowStack = Stack.new()
 local FrameStack = Stack.new()
 local ColorStack = Stack.new()
 local StyleStack = Stack.new()
+
+---@type draw
+local lateDraw = {}
+setmetatable(lateDraw, {
+    __index = function(_, key)
+        return function(...)
+            local args = { ... }
+            table.insert(LateDrawList, function() draw[key](table.unpack(args)) end)
+        end
+    end
+})
 
 --[[ Private Functions ]]
 
@@ -94,11 +111,11 @@ end
 
 --[[ Public Getters ]]
 
-function ImMenu.GetVersion() return 0.61 end
+function ImMenu.GetVersion() return 0.62 end
 function ImMenu.GetStyle() return table.readOnly(Style) end
 function ImMenu.GetColors() return table.readOnly(Colors) end
 
----@return ImRect
+---@return ImWindow
 function ImMenu.GetCurrentWindow() return WindowStack:peek() end
 
 ---@return ImFrame
@@ -158,6 +175,18 @@ function ImMenu.AddStyle(key, value)
     Style[key] = value
 end
 
+-- Runs all late draw functions
+function ImMenu.LateDraw()
+    draw.Color(255, 255, 255, 255)
+
+    -- Run all late draw functions
+    for _, func in ipairs(LateDrawList) do
+        func()
+    end
+
+    LateDrawList = {}
+end
+
 -- Updates the cursor and current frame size
 function ImMenu.UpdateCursor(w, h)
     local frame = ImMenu.GetCurrentFrame()
@@ -172,7 +201,7 @@ function ImMenu.UpdateCursor(w, h)
             frame.H = math.max(frame.H, h)
         end
     else
-        -- TODO: Should it be allowed to draw without frames?
+        -- TODO: It shouldn't be allowed to draw outside of a frame
         ImMenu.Cursor.Y = ImMenu.Cursor.Y + h + Style.Spacing
     end
 end
@@ -303,19 +332,24 @@ end
 -- Begins a new window
 ---@param title string
 ---@param visible? boolean
-function ImMenu.Begin(title, visible)
+---@param popup? boolean
+---@return boolean visible
+function ImMenu.Begin(title, visible, popup)
     local isVisible = (visible == nil) or visible
     if not isVisible then return false end
 
+    -- Create the window if it doesn't exist
     if not Windows[title] then
         Windows[title] = {
             X = 50,
             Y = 150,
             W = 100,
-            H = 100
+            H = 100,
+            P = popup or false
         }
     end
 
+    -- Initialize the window
     draw.SetFont(Style.Font)
     local window = Windows[title]
     local titleText = ImMenu.GetLabel(title)
@@ -376,6 +410,26 @@ function ImMenu.End()
     -- Update the window size
     window.W = frame.W
     window.H = frame.H
+
+    -- Draw late draw list
+    if not window.P then
+        ImMenu.LateDraw()
+    end
+end
+
+---@param title string
+---@param x integer
+---@param y integer
+---@param w integer
+---@param h integer
+---@param func function
+function ImMenu.Popup(title, x, y, w, h, func)
+    table.insert(LateDrawList, function()
+        if ImMenu.Begin(title, true, true) then
+            func()
+            ImMenu.End()
+        end
+    end)
 end
 
 -- Draw a label
@@ -612,6 +666,40 @@ function ImMenu.List(text, items)
 
     ImMenu.EndFrame()
     ImMenu.PopStyle(2)
+end
+
+function ImMenu.Combo(text, selected, options)
+    local txtWidth, txtHeight = draw.GetTextSize(text)
+    local width, height = ImMenu.GetSize(250, txtHeight + Style.Spacing * 2)
+    local comboId = "Combo" .. text
+
+    ImMenu.PushStyle("ItemSize", { width, height })
+    if ImMenu.Button(text) then
+        ImMenu.ActiveItem = comboId
+    end
+
+    if ImMenu.ActiveItem == comboId then
+        ImMenu.Popup(comboId, 0, 0, 0, 0, function ()
+            ImMenu.PushStyle("ItemSize", { width, height })
+
+            for i, option in ipairs(options) do
+                if ImMenu.Button(tostring(option)) then
+                    selected = i
+                    ImMenu.ActiveItem = nil
+                end
+            end
+
+            ImMenu.PopStyle()
+        end)
+        --[[ImMenu.DrawLate(function ()
+            draw.Color(255, 255, 255, 255)
+            draw.Text(10, 50, "Combo open!")
+        end)]]
+    end
+
+    ImMenu.PopStyle()
+
+    return selected
 end
 
 ---@param tabs string[]
