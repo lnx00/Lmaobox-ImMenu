@@ -72,7 +72,8 @@ local Colors = {
 ---@type ImStyle[]
 local Style = {
     Font = Fonts.Verdana,
-    Spacing = 5,
+    ItemPadding = 5,
+    ItemMargin = 5,
     FramePadding = 7,
     ItemSize = nil,
     WindowBorder = true,
@@ -102,7 +103,7 @@ end
 
 --[[ Public Getters ]]
 
-function ImMenu.GetVersion() return 0.62 end
+function ImMenu.GetVersion() return 0.63 end
 function ImMenu.GetStyle() return table.readOnly(Style) end
 function ImMenu.GetColors() return table.readOnly(Colors) end
 
@@ -179,21 +180,25 @@ function ImMenu.LateDraw()
 end
 
 -- Updates the cursor and current frame size
+---@param w integer
+---@param h integer
 function ImMenu.UpdateCursor(w, h)
     local frame = ImMenu.GetCurrentFrame()
     if frame then
         if frame.A == 0 then
-            ImMenu.Cursor.Y = ImMenu.Cursor.Y + h + Style.Spacing
+            -- Horizontal
+            ImMenu.Cursor.Y = ImMenu.Cursor.Y + h + Style.ItemMargin
             frame.W = math.max(frame.W, w)
             frame.H = math.max(frame.H, ImMenu.Cursor.Y - frame.Y)
         elseif frame.A == 1 then
-            ImMenu.Cursor.X = ImMenu.Cursor.X + w + Style.Spacing
+            -- Vertical
+            ImMenu.Cursor.X = ImMenu.Cursor.X + w + Style.ItemMargin
             frame.W = math.max(frame.W, ImMenu.Cursor.X - frame.X)
             frame.H = math.max(frame.H, h)
         end
     else
         -- TODO: It shouldn't be allowed to draw outside of a frame
-        ImMenu.Cursor.Y = ImMenu.Cursor.Y + h + Style.Spacing
+        ImMenu.Cursor.Y = ImMenu.Cursor.Y + h + Style.ItemMargin
     end
 end
 
@@ -216,6 +221,7 @@ end
 function ImMenu.GetSize(width, height)
     if Style.ItemSize ~= nil then
         local frame = ImMenu.GetCurrentFrame()
+        -- TODO: Unpack ItemSize
         width = Style.ItemSize[1] == -1 and frame.W or Style.ItemSize[1]
         height = Style.ItemSize[2] == -1 and frame.H or Style.ItemSize[2]
     end
@@ -269,13 +275,13 @@ end
 
 ---@param size? number
 function ImMenu.Space(size)
-    size = size or Style.Spacing
+    size = size or Style.ItemMargin
     ImMenu.UpdateCursor(size, size)
 end
 
 function ImMenu.Separator()
     local x, y = ImMenu.Cursor.X, ImMenu.Cursor.Y
-    local width, height = ImMenu.GetSize(250, Style.Spacing * 2)
+    local width, height = ImMenu.GetSize(250, Style.ItemMargin * 2)
 
     draw.Color(UnpackColor(Colors.WindowBorder))
     draw.Line(x, y + height // 2, x + width, y + height // 2)
@@ -306,11 +312,13 @@ function ImMenu.EndFrame()
 
     -- Apply padding
     if frame.A == 0 then
+        -- Horizontal
         frame.W = frame.W + Style.FramePadding * 2
-        frame.H = frame.H + Style.FramePadding - Style.Spacing
+        frame.H = frame.H + Style.FramePadding - Style.ItemMargin
     elseif frame.A == 1 then
+        -- Vertical
         frame.H = frame.H + Style.FramePadding * 2
-        frame.W = frame.W + Style.FramePadding - Style.Spacing
+        frame.W = frame.W + Style.FramePadding - Style.ItemMargin
     end
 
     -- Border
@@ -348,7 +356,7 @@ function ImMenu.Begin(title, visible)
     local window = Windows[title]
     local titleText = ImMenu.GetLabel(title)
     local txtWidth, txtHeight = draw.GetTextSize(titleText)
-    local titleHeight = txtHeight + Style.Spacing
+    local titleHeight = txtHeight + Style.ItemPadding
     local hovered, clicked, active = ImMenu.GetInteraction(window.X, window.Y, window.W, titleHeight, title)
 
     -- Title bar
@@ -396,6 +404,7 @@ function ImMenu.Begin(title, visible)
 end
 
 -- Ends the current window
+---@return ImWindow
 function ImMenu.End()
     ---@type ImFrame
     local frame = ImMenu.EndFrame()
@@ -406,9 +415,9 @@ function ImMenu.End()
     window.H = frame.H
 
     -- Draw late draw list
-    if not window.P then
-        ImMenu.LateDraw()
-    end
+    ImMenu.LateDraw()
+
+    return window
 end
 
 -- Runs the given function after the current window has been drawn
@@ -423,11 +432,16 @@ function ImMenu.Popup(x, y, func)
     ImMenu.DrawLate(function()
         inPopup = true
 
+        -- Prepare cursor
         ImMenu.Cursor.X = x
         ImMenu.Cursor.Y = y
+
+        -- Draw the popup
+        ImMenu.PushStyle("FramePadding", 0)
         ImMenu.BeginFrame()
         func()
         local frame = ImMenu.EndFrame()
+        ImMenu.PopStyle()
 
         -- Close the popup if clicked outside of it
         if not Input.MouseInBounds(frame.X, frame.Y, frame.X + frame.W, frame.Y + frame.H) and MouseHelper:Pressed() then
@@ -460,8 +474,8 @@ function ImMenu.Checkbox(text, state)
     local x, y = ImMenu.Cursor.X, ImMenu.Cursor.Y
     local label = ImMenu.GetLabel(text)
     local txtWidth, txtHeight = draw.GetTextSize(label)
-    local boxSize = txtHeight + Style.Spacing * 2
-    local width, height = ImMenu.GetSize(boxSize + Style.Spacing + txtWidth, boxSize)
+    local boxSize = txtHeight + Style.ItemPadding * 2
+    local width, height = ImMenu.GetSize(boxSize + Style.ItemMargin + txtWidth, boxSize)
     local hovered, clicked, active = ImMenu.GetInteraction(x, y, width, height, text)
 
     -- Box
@@ -477,12 +491,12 @@ function ImMenu.Checkbox(text, state)
     -- Check
     if state then
         draw.Color(UnpackColor(Colors.Highlight))
-        draw.FilledRect(x + Style.Spacing, y + Style.Spacing, x + (boxSize - Style.Spacing), y + (boxSize - Style.Spacing))
+        draw.FilledRect(x + Style.ItemPadding, y + Style.ItemPadding, x + (boxSize - Style.ItemPadding), y + (boxSize - Style.ItemPadding))
     end
 
     -- Text
     draw.Color(UnpackColor(Colors.Text))
-    draw.Text(x + boxSize + Style.Spacing, y + (height // 2) - (txtHeight // 2), label)
+    draw.Text(x + boxSize + Style.ItemMargin, y + (height // 2) - (txtHeight // 2), label)
 
     -- Update State
     if clicked then
@@ -500,7 +514,7 @@ function ImMenu.Button(text)
     local x, y = ImMenu.Cursor.X, ImMenu.Cursor.Y
     local label = ImMenu.GetLabel(text)
     local txtWidth, txtHeight = draw.GetTextSize(label)
-    local width, height = ImMenu.GetSize(txtWidth + Style.Spacing * 2, txtHeight + Style.Spacing * 2)
+    local width, height = ImMenu.GetSize(txtWidth + Style.ItemPadding * 2, txtHeight + Style.ItemPadding * 2)
     local hovered, clicked, active = ImMenu.GetInteraction(x, y, width, height, text)
 
     -- Background
@@ -552,7 +566,7 @@ function ImMenu.Slider(text, value, min, max, step)
     local x, y = ImMenu.Cursor.X, ImMenu.Cursor.Y
     local label = string.format("%s: %s", ImMenu.GetLabel(text), value)
     local txtWidth, txtHeight = draw.GetTextSize(label)
-    local width, height = ImMenu.GetSize(250, txtHeight + Style.Spacing * 2)
+    local width, height = ImMenu.GetSize(250, txtHeight + Style.ItemPadding * 2)
     local sliderWidth = math.floor(width * (value - min) / (max - min))
     local hovered, clicked, active = ImMenu.GetInteraction(x, y, width, height, text)
 
@@ -624,7 +638,7 @@ end
 ---@return integer selected
 function ImMenu.Option(selected, options)
     local txtWidth, txtHeight = draw.GetTextSize("#")
-    local btnSize = txtHeight + 2 * Style.Spacing
+    local btnSize = txtHeight + 2 * Style.ItemPadding
     local width, height = ImMenu.GetSize(250, txtHeight)
 
     ImMenu.PushStyle("ItemSize", { btnSize, btnSize })
@@ -637,7 +651,7 @@ function ImMenu.Option(selected, options)
     end
 
     -- Current Item
-    ImMenu.PushStyle("ItemSize", { width - (2 * btnSize) - (2 * Style.Spacing), btnSize })
+    ImMenu.PushStyle("ItemSize", { width - (2 * btnSize) - (2 * Style.ItemMargin), btnSize })
     ImMenu.Text(tostring(options[selected]))
     ImMenu.PopStyle()
 
@@ -656,7 +670,7 @@ end
 ---@param items string[]
 function ImMenu.List(text, items)
     local txtWidth, txtHeight = draw.GetTextSize(text)
-    local width, height = ImMenu.GetSize(250, txtHeight + Style.Spacing * 2)
+    local width, height = ImMenu.GetSize(250, txtHeight + Style.ItemPadding * 2)
 
     ImMenu.PushStyle("FramePadding", 0)
     ImMenu.PushStyle("ItemSize", { width, height })
@@ -676,14 +690,16 @@ end
 
 function ImMenu.Combo(text, selected, options)
     local txtWidth, txtHeight = draw.GetTextSize(text)
-    local width, height = ImMenu.GetSize(250, txtHeight + Style.Spacing * 2)
+    local width, height = ImMenu.GetSize(250, txtHeight + Style.ItemPadding * 2)
     local popupId = "Combo" .. text
 
+    -- Dropdown button
     ImMenu.PushStyle("ItemSize", { width, height })
     if ImMenu.Button(text) then
         ImMenu.ActivePopup = popupId
     end
 
+    -- Dropdown popup
     if ImMenu.ActivePopup == popupId then
         ImMenu.Popup(ImMenu.Cursor.X, ImMenu.Cursor.Y, function ()
             ImMenu.PushStyle("ItemSize", { width, height })
