@@ -35,9 +35,10 @@ local ImMenu = {
 }
 
 --[[ Variables ]]
-local ScreenWidth, ScreenHeight = draw.GetScreenSize()
----@type ImPos
-local DragPos = { X = 0, Y = 0 }
+local screenWidth, screenHeight = draw.GetScreenSize()
+local dragPos = { X = 0, Y = 0 }
+local lastKey = { Key = 0, Time = 0 }
+local inPopup = false
 
 -- Input Helpers
 local MouseHelper = KeyHelper.new(MOUSE_LEFT)
@@ -88,23 +89,17 @@ local FrameStack = Stack.new()
 local ColorStack = Stack.new()
 local StyleStack = Stack.new()
 
--- State
-local inPopup = false
-
 --[[ Private Functions ]]
 ---@param color ImColor
 local function UnpackColor(color)
     return color[1], color[2], color[3], color[4] or 255
 end
 
----@type { Key : integer, Time : number }
-local lastKey = { Key = 0, Time = 0 }
-
 ---@return integer?
 local function GetInput()
     local key = Input.GetPressedKey()
     if not key then
-        lastKey = { Key = 0, Time = 0 }
+        lastKey.Key = 0
         return nil
     end
 
@@ -120,7 +115,8 @@ local function GetInput()
         end
     end
 
-    lastKey = { Key = key, Time = globals.RealTime() }
+    lastKey.Key = key
+    lastKey.Time = globals.RealTime()
     return key
 end
 
@@ -409,11 +405,11 @@ function ImMenu.Begin(title, visible)
     if active then
         local mX, mY = table.unpack(input.GetMousePos())
         if clicked then
-            DragPos = { X = mX - window.X, Y = mY - window.Y }
+            dragPos = { X = mX - window.X, Y = mY - window.Y }
         end
 
-        window.X = math.clamp(mX - DragPos.X, 0, ScreenWidth - window.W)
-        window.Y = math.clamp(mY - DragPos.Y, 0, ScreenHeight - window.H - titleHeight)
+        window.X = math.clamp(mX - dragPos.X, 0, screenWidth - window.W)
+        window.Y = math.clamp(mY - dragPos.Y, 0, screenHeight - window.H - titleHeight)
     end
 
     -- Update the cursor
