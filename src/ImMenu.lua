@@ -103,7 +103,7 @@ end
 
 --[[ Public Getters ]]
 
-function ImMenu.GetVersion() return 0.63 end
+function ImMenu.GetVersion() return 0.64 end
 function ImMenu.GetStyle() return table.readOnly(Style) end
 function ImMenu.GetColors() return table.readOnly(Colors) end
 
@@ -221,9 +221,9 @@ end
 function ImMenu.GetSize(width, height)
     if Style.ItemSize ~= nil then
         local frame = ImMenu.GetCurrentFrame()
-        -- TODO: Unpack ItemSize
-        width = Style.ItemSize[1] == -1 and frame.W or Style.ItemSize[1]
-        height = Style.ItemSize[2] == -1 and frame.H or Style.ItemSize[2]
+        local itemW, itemH = Style.ItemSize[1], Style.ItemSize[2]
+        width = itemW == -1 and frame.W or itemW
+        height = itemH == -1 and frame.H or itemH
     end
 
     return width, height
@@ -436,7 +436,7 @@ function ImMenu.Popup(x, y, func)
         ImMenu.Cursor.X = x
         ImMenu.Cursor.Y = y
 
-        -- Draw the popup
+        -- Draw the popup | TODO: Add a popup frame background
         ImMenu.PushStyle("FramePadding", 0)
         ImMenu.BeginFrame()
         func()
@@ -691,18 +691,18 @@ end
 function ImMenu.Combo(text, selected, options)
     local txtWidth, txtHeight = draw.GetTextSize(text)
     local width, height = ImMenu.GetSize(250, txtHeight + Style.ItemPadding * 2)
-    local popupId = "Combo" .. text
 
     -- Dropdown button
     ImMenu.PushStyle("ItemSize", { width, height })
     if ImMenu.Button(text) then
-        ImMenu.ActivePopup = popupId
+        ImMenu.ActivePopup = text
     end
 
     -- Dropdown popup
-    if ImMenu.ActivePopup == popupId then
+    if ImMenu.ActivePopup == text then
         ImMenu.Popup(ImMenu.Cursor.X, ImMenu.Cursor.Y, function ()
             ImMenu.PushStyle("ItemSize", { width, height })
+            ImMenu.PushStyle("ItemMargin", 0)
 
             for i, option in ipairs(options) do
                 if ImMenu.Button(tostring(option)) then
@@ -711,7 +711,7 @@ function ImMenu.Combo(text, selected, options)
                 end
             end
 
-            ImMenu.PopStyle()
+            ImMenu.PopStyle(2)
         end)
     end
 
