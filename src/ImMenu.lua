@@ -2,7 +2,6 @@
     Immediate mode menu library for Lmaobox
     Author: github.com/lnx00
 ]]
-
 if UnloadLib ~= nil then UnloadLib() end
 
 -- Import lnxLib
@@ -23,7 +22,6 @@ local KeyHelper, Input, Timer = lnxLib.Utils.KeyHelper, lnxLib.Utils.Input, lnxL
 ---@alias ImStyle any
 
 --[[ Globals ]]
-
 ---@enum ImAlign
 ImAlign = { Vertical = 0, Horizontal = 1 }
 
@@ -37,7 +35,6 @@ local ImMenu = {
 }
 
 --[[ Variables ]]
-
 local ScreenWidth, ScreenHeight = draw.GetScreenSize()
 ---@type ImPos
 local DragPos = { X = 0, Y = 0 }
@@ -95,7 +92,6 @@ local StyleStack = Stack.new()
 local inPopup = false
 
 --[[ Private Functions ]]
-
 ---@param color ImColor
 local function UnpackColor(color)
     return color[1], color[2], color[3], color[4] or 255
@@ -115,7 +111,9 @@ local function GetInput()
     if (key < KEY_0 or key > KEY_Z)
         and key ~= KEY_BACKSPACE
         and key ~= KEY_SPACE
-    then return nil end
+    then
+        return nil
+    end
 
     if key == lastKey.Key then
         if lastKey.Time + 0.5 < globals.RealTime() then
@@ -131,8 +129,13 @@ end
 
 --[[ Public Getters ]]
 
-function ImMenu.GetVersion() return 0.64 end
+---@return number
+function ImMenu.GetVersion() return 0.65 end
+
+---@return ImStyle[]
 function ImMenu.GetStyle() return table.readOnly(Style) end
+
+---@return ImColor[]
 function ImMenu.GetColors() return table.readOnly(Colors) end
 
 ---@return ImWindow
@@ -142,7 +145,6 @@ function ImMenu.GetCurrentWindow() return WindowStack:peek() end
 function ImMenu.GetCurrentFrame() return FrameStack:peek() end
 
 --[[ Public Setters ]]
-
 -- Push a color to the stack
 ---@param key string
 ---@param color ImColor
@@ -180,7 +182,6 @@ function ImMenu.PopStyle(amount)
 end
 
 --[[ Public Functions ]]
-
 -- Creates a new color attribute
 ---@param key string
 ---@param value any
@@ -274,7 +275,7 @@ function ImMenu.GetInteraction(x, y, width, height, id)
     if ImMenu.ActivePopup ~= nil and not inPopup then
         return false, false, false
     end
-    
+
     local hovered = Input.MouseInBounds(x, y, x + width, y + height) or id == ImMenu.ActiveItem
     local clicked = hovered and (MouseHelper:Pressed() or EnterHelper:Pressed())
     local active = hovered and (MouseHelper:Down() or EnterHelper:Down())
@@ -520,7 +521,8 @@ function ImMenu.Checkbox(text, state)
     -- Check
     if state then
         draw.Color(UnpackColor(Colors.Highlight))
-        draw.FilledRect(x + Style.ItemPadding, y + Style.ItemPadding, x + (boxSize - Style.ItemPadding), y + (boxSize - Style.ItemPadding))
+        draw.FilledRect(x + Style.ItemPadding, y + Style.ItemPadding, x + (boxSize - Style.ItemPadding),
+        y + (boxSize - Style.ItemPadding))
     end
 
     -- Text
@@ -779,7 +781,7 @@ function ImMenu.Combo(text, selected, options)
 
     -- Dropdown popup
     if ImMenu.ActivePopup == text then
-        ImMenu.Popup(ImMenu.Cursor.X, ImMenu.Cursor.Y, function ()
+        ImMenu.Popup(ImMenu.Cursor.X, ImMenu.Cursor.Y, function()
             ImMenu.PushStyle("ItemSize", { width, height })
 
             for i, option in ipairs(options) do
