@@ -12,7 +12,7 @@ assert(libLoaded, "lnxLib not found, please install it!")
 assert(lnxLib.GetVersion() >= 0.94, "lnxLib version is too old, please update it!")
 
 local Fonts, Notify = lnxLib.UI.Fonts, lnxLib.UI.Notify
-local KeyHelper, Input = lnxLib.Utils.KeyHelper, lnxLib.Utils.Input
+local KeyHelper, Input, Timer = lnxLib.Utils.KeyHelper, lnxLib.Utils.Input, lnxLib.Utils.Timer
 
 -- Annotation aliases
 ---@alias ImItemID string
@@ -634,6 +634,49 @@ function ImMenu.Progress(value, min, max)
     ImMenu.UpdateCursor(width, height)
 end
 
+---@param label string
+---@param text string
+---@return string text
+function ImMenu.TextInput(label, text)
+    local x, y = ImMenu.Cursor.X, ImMenu.Cursor.Y
+    local txtWidth, txtHeight = draw.GetTextSize(text)
+    local width, height = ImMenu.GetSize(250, txtHeight + Style.ItemPadding * 2)
+    local hovered, clicked, active = ImMenu.GetInteraction(x, y, width, height, label)
+
+    -- Background
+    ImMenu.InteractionColor(hovered, active)
+    draw.FilledRect(x, y, x + width, y + height)
+
+    -- Border
+    draw.Color(UnpackColor(Colors.Border))
+    draw.OutlinedRect(x, y, x + width, y + height)
+
+    -- Text Input
+    if hovered then
+        local keys = Input.GetPressedKeys()
+        for _, key in pairs(keys) do
+            if key == KEY_BACKSPACE then
+                text = text:sub(1, -2)
+            elseif key >= KEY_0 and key <= KEY_Z then
+                local keyValue = Input.KeyToChar(key)
+                if keyValue then
+                    if not input.IsButtonDown(KEY_LSHIFT) then
+                        keyValue = keyValue:lower()
+                    end
+                    text = text .. keyValue
+                end
+            end
+        end
+    end
+
+    -- Text
+    draw.Color(UnpackColor(Colors.Text))
+    draw.Text(x + Style.ItemPadding, y + (height // 2) - (txtHeight // 2), text)
+
+    ImMenu.UpdateCursor(width, height)
+    return text
+end
+
 ---@param selected integer
 ---@param options any[]
 ---@return integer selected
@@ -689,6 +732,9 @@ function ImMenu.List(text, items)
     ImMenu.PopStyle(2)
 end
 
+---@param text string
+---@param selected integer
+---@param options string[]
 function ImMenu.Combo(text, selected, options)
     local txtWidth, txtHeight = draw.GetTextSize(text)
     local width, height = ImMenu.GetSize(250, txtHeight + Style.ItemPadding * 2)
