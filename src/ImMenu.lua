@@ -108,10 +108,7 @@ local function GetInput()
         return nil
     end
 
-    if (key < KEY_0 or key > KEY_Z)
-        and key ~= KEY_BACKSPACE
-        and key ~= KEY_SPACE
-    then
+    if key < KEY_0 or key > KEY_TAB then
         return nil
     end
 
@@ -671,6 +668,7 @@ function ImMenu.TextInput(label, text)
     local x, y = ImMenu.Cursor.X, ImMenu.Cursor.Y
     local txtWidth, txtHeight = draw.GetTextSize(text)
     local width, height = ImMenu.GetSize(250, txtHeight + Style.ItemPadding * 2)
+    local txtY = y + (height // 2) - (txtHeight // 2)
     local hovered, clicked, active = ImMenu.GetInteraction(x, y, width, height, label)
 
     -- Background
@@ -689,6 +687,8 @@ function ImMenu.TextInput(label, text)
                 text = text:sub(1, -2)
             elseif key == KEY_SPACE then
                 text = text .. " "
+            elseif key == KEY_TAB then
+                text = text .. "\t"
             else
                 local char = Input.KeyToChar(key)
                 if char then
@@ -705,7 +705,13 @@ function ImMenu.TextInput(label, text)
 
     -- Text
     draw.Color(UnpackColor(Colors.Text))
-    draw.Text(x + Style.ItemPadding, y + (height // 2) - (txtHeight // 2), text)
+    draw.Text(x + Style.ItemPadding, txtY, text)
+
+    -- Cursor
+    if hovered then
+        draw.Color(UnpackColor(Colors.Highlight))
+        draw.FilledRect(x + txtWidth + Style.ItemPadding, txtY, x + txtWidth + Style.ItemPadding + 2, txtY + txtHeight)
+    end
 
     ImMenu.UpdateCursor(width, height)
     return text
