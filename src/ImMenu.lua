@@ -242,10 +242,7 @@ end
 ---@return integer width, integer height
 function ImMenu.GetSize(width, height)
     if Style.ItemSize ~= nil then
-        local frame = ImMenu.GetCurrentFrame()
-        local itemW, itemH = Style.ItemSize[1], Style.ItemSize[2]
-        width = itemW == -1 and frame.W or itemW
-        height = itemH == -1 and frame.H or itemH
+        width, height = Style.ItemSize[1], Style.ItemSize[2]
     end
 
     return width, height
