@@ -72,7 +72,7 @@ local Style = {
     Font = Fonts.Verdana,
     ItemPadding = 5,
     ItemMargin = 5,
-    FramePadding = 7,
+    FramePadding = 5,
     ItemSize = nil,
     WindowBorder = true,
     FrameBorder = false,
@@ -123,7 +123,7 @@ end
 --[[ Public Getters ]]
 
 ---@return number
-function ImMenu.GetVersion() return 0.65 end
+function ImMenu.GetVersion() return 0.66 end
 
 ---@return ImStyle[]
 function ImMenu.GetStyle() return table.readOnly(Style) end
@@ -675,6 +675,23 @@ function ImMenu.TextInput(label, text)
     draw.Color(UnpackColor(Colors.Border))
     draw.OutlinedRect(x, y, x + width, y + height)
 
+    -- Text
+    draw.Color(UnpackColor(Colors.Text))
+    if txtWidth > width - 2 * Style.ItemPadding then
+        local charWidth = math.ceil(txtWidth / #text)
+        local charCount = (width // charWidth) - 2
+        draw.Text(x + Style.ItemPadding, txtY, string.sub(text, -charCount))
+    else
+        draw.Text(x + Style.ItemPadding, txtY, text)
+    end
+
+    -- Cursor
+    if hovered then
+        draw.Color(UnpackColor(Colors.Highlight))
+        local cursorX = math.min(x + txtWidth, x + width - Style.ItemPadding * 2)
+        draw.FilledRect(cursorX + Style.ItemPadding, txtY, cursorX + Style.ItemPadding + 2, txtY + txtHeight)
+    end
+
     -- Text Input
     if hovered then
         local key = GetInput()
@@ -697,16 +714,6 @@ function ImMenu.TextInput(label, text)
                 end
             end
         end
-    end
-
-    -- Text
-    draw.Color(UnpackColor(Colors.Text))
-    draw.Text(x + Style.ItemPadding, txtY, text)
-
-    -- Cursor
-    if hovered then
-        draw.Color(UnpackColor(Colors.Highlight))
-        draw.FilledRect(x + txtWidth + Style.ItemPadding, txtY, x + txtWidth + Style.ItemPadding + 2, txtY + txtHeight)
     end
 
     ImMenu.UpdateCursor(width, height)
