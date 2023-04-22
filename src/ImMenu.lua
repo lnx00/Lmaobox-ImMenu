@@ -101,6 +101,34 @@ local function UnpackColor(color)
     return color[1], color[2], color[3], color[4] or 255
 end
 
+---@type { Key : integer, Time : number }
+local lastKey = { Key = 0, Time = 0 }
+
+---@return integer?
+local function GetInput()
+    local key = Input.GetPressedKey()
+    if not key then
+        lastKey = { Key = 0, Time = 0 }
+        return nil
+    end
+
+    if (key < KEY_0 or key > KEY_Z)
+        and key ~= KEY_BACKSPACE
+        and key ~= KEY_SPACE
+    then return nil end
+
+    if key == lastKey.Key then
+        if lastKey.Time + 0.5 < globals.RealTime() then
+            return key
+        else
+            return nil
+        end
+    end
+
+    lastKey = { Key = key, Time = globals.RealTime() }
+    return key
+end
+
 --[[ Public Getters ]]
 
 function ImMenu.GetVersion() return 0.64 end
@@ -653,17 +681,21 @@ function ImMenu.TextInput(label, text)
 
     -- Text Input
     if hovered then
-        local keys = Input.GetPressedKeys()
-        for _, key in pairs(keys) do
+        local key = GetInput()
+        if key then
             if key == KEY_BACKSPACE then
                 text = text:sub(1, -2)
-            elseif key >= KEY_0 and key <= KEY_Z then
-                local keyValue = Input.KeyToChar(key)
-                if keyValue then
-                    if not input.IsButtonDown(KEY_LSHIFT) then
-                        keyValue = keyValue:lower()
+            elseif key == KEY_SPACE then
+                text = text .. " "
+            else
+                local char = Input.KeyToChar(key)
+                if char then
+                    if input.IsButtonDown(KEY_LSHIFT) then
+                        char = char:upper()
+                    else
+                        char = char:lower()
                     end
-                    text = text .. keyValue
+                    text = text .. char
                 end
             end
         end
