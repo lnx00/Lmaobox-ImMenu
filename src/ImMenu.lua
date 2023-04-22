@@ -438,10 +438,11 @@ function ImMenu.Popup(x, y, func)
 
         -- Draw the popup | TODO: Add a popup frame background
         ImMenu.PushStyle("FramePadding", 0)
+        ImMenu.PushStyle("ItemMargin", 0)
         ImMenu.BeginFrame()
         func()
         local frame = ImMenu.EndFrame()
-        ImMenu.PopStyle()
+        ImMenu.PopStyle(2)
 
         -- Close the popup if clicked outside of it
         if not Input.MouseInBounds(frame.X, frame.Y, frame.X + frame.W, frame.Y + frame.H) and MouseHelper:Pressed() then
@@ -702,7 +703,6 @@ function ImMenu.Combo(text, selected, options)
     if ImMenu.ActivePopup == text then
         ImMenu.Popup(ImMenu.Cursor.X, ImMenu.Cursor.Y, function ()
             ImMenu.PushStyle("ItemSize", { width, height })
-            ImMenu.PushStyle("ItemMargin", 0)
 
             for i, option in ipairs(options) do
                 if ImMenu.Button(tostring(option)) then
@@ -711,7 +711,7 @@ function ImMenu.Combo(text, selected, options)
                 end
             end
 
-            ImMenu.PopStyle(2)
+            ImMenu.PopStyle(1)
         end)
     end
 
