@@ -123,7 +123,7 @@ end
 --[[ Public Getters ]]
 
 ---@return number
-function ImMenu.GetVersion() return 0.66 end
+function ImMenu.GetVersion() return 0.67 end
 
 ---@return ImStyle[]
 function ImMenu.GetStyle() return table.readOnly(Style) end
@@ -752,9 +752,11 @@ end
 
 ---@param text string
 ---@param items string[]
+---@return integer activeItem
 function ImMenu.List(text, items)
     local txtWidth, txtHeight = draw.GetTextSize(text)
     local width, height = ImMenu.GetSize(250, txtHeight + Style.ItemPadding * 2)
+    local activeItem = nil
 
     ImMenu.PushStyle("FramePadding", 0)
     ImMenu.PushStyle("ItemSize", { width, height })
@@ -764,12 +766,16 @@ function ImMenu.List(text, items)
     ImMenu.Text(text)
 
     -- Items
-    for _, item in ipairs(items) do
-        ImMenu.Button(tostring(item))
+    for i, item in ipairs(items) do
+        if ImMenu.Button(tostring(item)) then
+            activeItem = i
+        end
     end
 
     ImMenu.EndFrame()
     ImMenu.PopStyle(2)
+
+    return activeItem
 end
 
 ---@param text string
